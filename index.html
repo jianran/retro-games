@@ -3,91 +3,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+<meta http-equiv="Cache-Control" content="no-store, must-revalidate">
 <title>Retro Games</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{
-  background:#0a0a1a;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;
-  min-height:100vh;display:flex;flex-direction:column;align-items:center;
-}
-header{
-  width:100%;padding:16px 24px;background:linear-gradient(135deg,#1a0a2e,#0a1a2e);
-  border-bottom:2px solid #333;text-align:center;
-  display:flex;align-items:center;justify-content:center;gap:12px;
-}
-header h1{font-size:28px;letter-spacing:2px;background:linear-gradient(90deg,#ff6644,#ffaa44,#ff6644);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-header .tag{font-size:10px;color:#888;letter-spacing:1px;text-transform:uppercase;}
-.game-grid{
-  display:flex;flex-wrap:wrap;gap:20px;padding:30px;justify-content:center;max-width:1100px;
-}
-.game-card{
-  width:300px;background:#111;border:2px solid #222;border-radius:16px;overflow:hidden;
-  transition:all .2s;cursor:pointer;text-decoration:none;color:#fff;
-}
-.game-card:hover{border-color:#ff6644;transform:translateY(-4px);box-shadow:0 12px 40px rgba(255,100,60,.2);}
-.game-card .thumb{
-  height:180px;background:linear-gradient(135deg,#1a1a2e,#16213e);
-  display:flex;align-items:center;justify-content:center;font-size:60px;
-}
-.game-card .info{padding:16px;}
-.game-card .info h3{font-size:18px;margin-bottom:4px;}
-.game-card .info p{font-size:11px;color:#888;line-height:1.4;}
-.badge{
-  display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;
-  background:#44cc44;color:#000;margin-top:6px;
-}
-footer{
-  margin-top:auto;padding:16px;color:#444;font-size:11px;text-align:center;
-  border-top:1px solid #1a1a1a;width:100%;
-}
+body{background:#0a0a1a;color:#fff;font-family:system-ui,sans-serif;padding:20px}
+h1{text-align:center;font-size:36px;margin-bottom:4px;background:linear-gradient(90deg,#ff6644,#ffaa44,#ff6644);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#888;font-size:12px;margin-bottom:30px;letter-spacing:2px;text-transform:uppercase}
+.games{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;max-width:1000px;margin:0 auto}
+.card{width:300px;background:#111;border:2px solid #333;border-radius:12px;overflow:hidden;text-decoration:none;color:#fff;transition:all .2s;display:block}
+.card:hover{border-color:#ff6644;transform:translateY(-4px);box-shadow:0 8px 30px rgba(255,100,60,.3)}
+.card .img{height:140px;display:flex;align-items:center;justify-content:center;font-size:60px}
+.card .txt{padding:14px}
+.card .txt h3{font-size:16px;margin-bottom:4px}
+.card .txt p{font-size:11px;color:#888;line-height:1.4}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin:2px}
+.badge-pop{background:#44cc44;color:#000}
+.badge-new{background:#44aaff;color:#fff}
+.badge-off{background:#ffaa44;color:#000}
+footer{text-align:center;color:#444;font-size:11px;margin-top:40px;padding-top:20px;border-top:1px solid #1a1a1a}
 </style>
 </head>
 <body>
-<header>
-  <span style="font-size:32px;">🕹️</span>
-  <div>
-    <h1>Retro Games</h1>
-    <div class="tag">Free Browser Games — No Downloads</div>
-  </div>
-</header>
+<h1>🕹️ Retro Games</h1>
+<p class="subtitle">Free Browser Games — No Downloads — No Sign-Ups — Works Offline</p>
 
-<div class="game-grid">
-  <a href="elemental-merge/" class="game-card">
-    <div class="thumb">🌊🔥🪨💨</div>
-    <div class="info">
-      <h3>Elemental Merge</h3>
-      <p>Strategic auto-battler. Merge elemental creatures, build your army, and survive infinite waves. 10 evolution tiers, 8 merge chains, PvP duels!</p>
-      <span class="badge">🔥 POPULAR</span>
-      <span class="badge" style="background:#ffaa44;">📡 Offline</span>
-    </div>
-  </a>
+<div class="games">
 
-  <a href="snowman-bros/" class="game-card">
-    <div class="thumb" style="background:linear-gradient(135deg,#0a1628,#1a3a5a);">⛄</div>
-    <div class="info">
-      <h3>Snowman Bros</h3>
-      <p>Classic arcade action! Throw snowballs to freeze enemies, then kick them to score combos. Power-ups, levels, and frosty fun!</p>
-      <span class="badge" style="background:#44aaff;">🆕 NEW</span>
-      <span class="badge" style="background:#ffaa44;">📡 Offline</span>
-    </div>
-  </a>
+<a class="card" href="elemental-merge/">
+  <div class="img" style="background:linear-gradient(135deg,#1a1a2e,#16213e)">🌊🔥🪨💨</div>
+  <div class="txt"><h3>Elemental Merge</h3><p>Strategic auto-battler. Merge creatures, build armies, survive waves. 10 tiers, duels, bosses!</p>
+  <span class="badge badge-pop">🔥 POPULAR</span><span class="badge badge-off">📡 Offline</span></div>
+</a>
 
-  <a href="dragon-flight/" class="game-card">
-    <div class="thumb" style="background:linear-gradient(135deg,#1a0a0a,#4a1a1a);">🐉</div>
-    <div class="info">
-      <h3>Dragon Flight</h3>
-      <p>Soar through the skies as a mighty dragon! Dodge obstacles, collect treasures, and fly as far as you can.</p>
-      <span class="badge" style="background:#44aaff;">🆕 NEW</span>
-      <span class="badge" style="background:#ffaa44;">📡 Offline</span>
-    </div>
-  </a>
+<a class="card" href="snowman-bros/">
+  <div class="img" style="background:linear-gradient(135deg,#0a1628,#1a3a5a)">⛄</div>
+  <div class="txt"><h3>Snowman Bros</h3><p>Arcade action! Throw snowballs, freeze enemies, kick to score combos!</p>
+  <span class="badge badge-new">🆕 NEW</span><span class="badge badge-off">📡 Offline</span></div>
+</a>
+
+<a class="card" href="dragon-flight/">
+  <div class="img" style="background:linear-gradient(135deg,#1a0a0a,#4a1a1a)">🐉</div>
+  <div class="txt"><h3>Dragon Flight</h3><p>Soar through the skies as a mighty dragon! Dodge, collect, fly!</p>
+  <span class="badge badge-new">🆕 NEW</span><span class="badge badge-off">📡 Offline</span></div>
+</a>
+
 </div>
 
-<footer>
-  Retro Games © 2026 &mdash; Free browser games. No downloads. No sign-ups. Just play.
-</footer>
+<footer>Retro Games &copy; 2026 — Play free, anywhere, no WiFi needed.</footer>
 </body>
 </html>
