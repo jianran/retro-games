@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snowman Bros — Retro Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a1628;display:flex;justify-content:center;align-items:center;height:100vh;font-family:system-ui,sans-serif;overflow:hidden}
+#game-wrap{position:relative;border:3px solid #336;border-radius:12px;overflow:hidden;box-shadow:0 0 60px rgba(100,150,255,.2)}
+canvas{display:block}
+#ui{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:space-between;padding:0 16px;pointer-events:none}
+#ui span{color:#fff;font-size:14px;font-weight:700;text-shadow:0 2px 4px rgba(0,0,0,.8)}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+#overlay h2{font-size:40px;color:#fff;text-shadow:0 0 20px #6af,0 4px 8px rgba(0,0,0,.8);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+</style>
+</head>
+<body>
+<div id="game-wrap">
+  <canvas id="c"></canvas>
+  <div id="ui"><span id="score-lbl">⭐ 0</span><span id="lives-lbl">❤️ 3</span><span id="level-lbl">🏔️ Level 1</span></div>
+  <div id="overlay"></div>
+</div>
+<script>
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+const W=640,H=480;c.width=W;c.height=H;
+
+// Game state
+let score=0,lives=3,level=1,gameOver=false,gameStarted=false;
+let player,enemies=[],snowballs=[],particles=[],powerups=[];
+let keys={},shootCd=0,levelTimer=0,enemySpawnCd=0;
+
+// Player
+function spawnPlayer(){
+  player={x:W/2,y:H-60,w:32,h:40,vx:0,vy:0,speed:200,onGround:true,dir:1,frame:0,animT:0};
+}
+// Enemy types
+const ENEMY_TYPES=[
+  {name:'Ice Slime',color:'#88ccff',w:28,h:24,speed:60,hp:1,score:100,emoji:'👾'},
+  {name:'Frost Goblin',color:'#aaddff',w:30,h:30,speed:80,hp:1,score:150,emoji:'👺'},
+  {name:'Yeti Cub',color:'#ffffff',w:34,h:34,speed:50,hp:2,score:250,emoji:'🐻'},
+  {name:'Evil Penguin',color:'#222244',w:26,h:28,speed:100,hp:1,score:200,emoji:'🐧'},
+];
+function spawnEnemy(){
+  const t=ENEMY_TYPES[Math.min(level-1,3)+Math.floor(Math.random()*Math.min(level,2))%ENEMY_TYPES.length];
+  const e={
+    x:40+Math.random()*(W-80),y:-30,w:t.w,h:t.h,vx:(Math.random()-.5)*t.speed,vy:30+Math.random()*20,
+    hp:t.hp,score:t.score,color:t.color,emoji:t.emoji,frozen:false,frozenTimer:0,type:t
+  };
+  enemies.push(e);
+}
+
+// Snowball
+function shoot(){
+  if(shootCd>0||gameOver||!gameStarted)return;
+  const sx=player.x+player.dir*20,sy=player.y-10;
+  snowballs.push({x:sx,y:sy,vx:player.dir*350,vy:-50,w:12,h:12,life:1.2});
+  shootCd=0.35;
+  // Recoil
+  player.vy=-40;
+}
+
+// Particles
+function spawnParticles(x,y,color,n){
+  for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*200,vy:-100-Math.random()*150,life:.5+Math.random()*.5,color,size:2+Math.random()*4});
+}
+
+// Reset level
+function resetLevel(){
+  enemies=[];snowballs=[];powerups=[];shootCd=0;levelTimer=0;enemySpawnCd=1;
+  spawnPlayer();
+  document.getElementById('overlay').innerHTML=gameStarted?`<h2>🏔️ Level ${level}</h2>`:'';
+  if(gameStarted)setTimeout(()=>document.getElementById('overlay').innerHTML='',1500);
+}
+
+function startGame(){
+  score=0;lives=3;level=1;gameOver=false;gameStarted=true;
+  resetLevel();
+}
+
+// Draw
+function drawSnowman(x,y,w,h){
+  // Body
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y-8,w*.45,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x,y+8,w*.55,0,Math.PI*2);ctx.fill();
+  // Eyes
+  ctx.fillStyle='#000';ctx.beginPath();ctx.arc(x-5,y-10,3,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x+5,y-10,3,0,Math.PI*2);ctx.fill();
+  // Nose (carrot)
+  ctx.fillStyle='#ff8800';ctx.beginPath();ctx.moveTo(x+player.dir*8,y-8);ctx.lineTo(x+player.dir*16,y-6);ctx.lineTo(x+player.dir*8,y-4);ctx.fill();
+  // Hat
+  ctx.fillStyle='#222';ctx.fillRect(x-12,y-26,w*.7,10);
+  ctx.fillRect(x-8,y-18,w*.5,14);
+  // Scarf
+  ctx.fillStyle='#ff3344';ctx.fillRect(x-10,y-2,20,4);ctx.fillRect(x+6,y-2,8,12);
+}
+
+function drawEnemy(e){
+  ctx.fillStyle=e.frozen?'#ccddff':e.color;
+  if(e.frozen){
+    // Snowball form
+    ctx.beginPath();ctx.arc(e.x,e.y,e.w/2,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  }else{
+    // Normal enemy
+    ctx.fillRect(e.x-e.w/2,e.y-e.h/2,e.w,e.h);
+    ctx.strokeStyle='rgba(0,0,0,.3)';ctx.lineWidth=1;ctx.strokeRect(e.x-e.w/2,e.y-e.h/2,e.w,e.h);
+    // Eyes
+    ctx.fillStyle='#fff';ctx.fillRect(e.x-6,e.y-6,5,5);ctx.fillRect(e.x+2,e.y-6,5,5);
+    ctx.fillStyle='#000';ctx.fillRect(e.x-4,e.y-4,3,3);ctx.fillRect(e.x+4,e.y-4,3,3);
+  }
+}
+
+function render(){
+  // Sky gradient
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'#0a1628');grad.addColorStop(0.5,'#1a2a4a');grad.addColorStop(1,'#c8d8e8');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+
+  // Stars
+  ctx.fillStyle='#fff';
+  for(let i=0;i<40;i++){const sx=(i*97+13)%W,sy=(i*73+7)%(H*.4);ctx.globalAlpha=.3+.2*Math.sin(i+performance.now()/2000);ctx.beginPath();ctx.arc(sx,sy,1+Math.random(),0,Math.PI*2);ctx.fill();}
+  ctx.globalAlpha=1;
+
+  // Snow ground
+  ctx.fillStyle='#e8f0f8';ctx.fillRect(0,H-30,W,30);
+  ctx.fillStyle='#f0f6fc';ctx.beginPath();ctx.arc(100,H-30,60,Math.PI,0);ctx.arc(250,H-30,45,Math.PI,0);ctx.arc(400,H-30,55,Math.PI,0);ctx.arc(550,H-30,48,Math.PI,0);ctx.fill();
+
+  // Snowballs
+  for(const s of snowballs){
+    ctx.fillStyle='#fff';ctx.shadowColor='#aaddff';ctx.shadowBlur=8;
+    ctx.beginPath();ctx.arc(s.x,s.y,s.w/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  }
+
+  // Powerups
+  for(const p of powerups){
+    ctx.fillStyle='#ffdd44';ctx.shadowColor='#ffdd44';ctx.shadowBlur=10;
+    ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle='#000';ctx.font='12px system-ui';ctx.textAlign='center';ctx.fillText(p.type,p.x,p.y+4);
+  }
+
+  // Enemies
+  for(const e of enemies)drawEnemy(e);
+
+  // Player
+  if(!gameOver)drawSnowman(player.x,player.y,player.w,player.h);
+
+  // Particles
+  for(const p of particles){ctx.fillStyle=p.color;ctx.globalAlpha=p.life/p.max;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();}
+  ctx.globalAlpha=1;
+
+  // Game over
+  if(gameOver){
+    ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fff';ctx.font='bold 36px system-ui';ctx.textAlign='center';
+    ctx.fillText('GAME OVER',W/2,H/2-20);
+    ctx.font='18px system-ui';ctx.fillText('Score: '+score, W/2, H/2+20);
+    ctx.fillText('Press SPACE to restart',W/2,H/2+50);
+  }
+
+  // Start screen
+  if(!gameStarted&&!gameOver){
+    ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fff';ctx.font='bold 44px system-ui';ctx.textAlign='center';
+    ctx.fillText('⛄ Snowman Bros',W/2,H/2-30);
+    ctx.font='16px system-ui';ctx.fillText('Throw snowballs • Freeze enemies • Kick to score!',W/2,H/2+15);
+    ctx.font='18px system-ui';ctx.fillText('Arrow Keys = Move | Z = Shoot | X = Kick',W/2,H/2+50);
+    ctx.font='24px system-ui';ctx.fillText('Press SPACE to Start',W/2,H/2+90);
+  }
+}
+
+function update(dt){
+  if(gameOver||!gameStarted)return;
+  if(dt>.1)dt=.1;
+
+  // Player movement
+  if(keys['ArrowLeft']){player.vx=-player.speed;player.dir=-1;}
+  else if(keys['ArrowRight']){player.vx=player.speed;player.dir=1;}
+  else player.vx*=0.8;
+  if(keys['ArrowUp']&&player.onGround){player.vy=-280;player.onGround=false;}
+  if(keys['KeyZ']||keys['z'])shoot();
+  if((keys['KeyX']||keys['x'])&&!keys._kickUsed){
+    keys._kickUsed=true;
+    // Kick nearby frozen enemies
+    for(let i=enemies.length-1;i>=0;i--){
+      const e=enemies[i];
+      if(e.frozen&&Math.hypot(player.x-e.x,player.y-e.y)<50){
+        e.frozen=false;e.hp=0;e.vy=-400;e.vx=(e.x>player.x?1:-1)*300;
+        spawnParticles(e.x,e.y,'#fff',10);
+        score+=e.score*2;
+        // Chain: check if kicked snowball hits other enemies
+        for(let j=enemies.length-1;j>=0;j--){
+          if(i===j)continue;
+          const e2=enemies[j];
+          if(Math.hypot(e.x-e2.x,e.y-e2.y)<e.w){
+            e2.hp=0;score+=e2.score;spawnParticles(e2.x,e2.y,'#ccddff',8);
+          }
+        }
+      }
+    }
+  }
+  if(!keys['KeyX']&&!keys['x'])keys._kickUsed=false;
+
+  // Gravity
+  player.vy+=600*dt;
+  player.x+=player.vx*dt;player.y+=player.vy*dt;
+  // Ground collision
+  if(player.y>H-30-player.h/2){player.y=H-30-player.h/2;player.vy=0;player.onGround=true;}
+  // Wall bounds
+  player.x=Math.max(player.w/2,Math.min(W-player.w/2,player.x));
+
+  // Shoot cooldown
+  shootCd=Math.max(0,shootCd-dt);
+
+  // Snowballs
+  for(let i=snowballs.length-1;i>=0;i--){
+    const s=snowballs[i];
+    s.x+=s.vx*dt;s.y+=s.vy*dt;s.vy+=200*dt;
+    s.life-=dt;
+    if(s.life<=0||s.y>H||s.x<0||s.x>W){snowballs.splice(i,1);continue;}
+    // Hit enemy
+    for(const e of enemies){
+      if(e.hp<=0)continue;
+      if(Math.hypot(s.x-e.x,s.y-e.y)<e.w/2+8){
+        if(!e.frozen){
+          e.frozen=true;e.frozenTimer=5;
+          spawnParticles(e.x,e.y,'#aaddff',6);
+        }
+        snowballs.splice(i,1);break;
+      }
+    }
+  }
+
+  // Enemies
+  enemySpawnCd-=dt;
+  if(enemySpawnCd<=0){
+    enemySpawnCd=2-Math.min(level*0.1, 1.2);
+    spawnEnemy();
+    if(level>=3&&Math.random()<.3)spawnEnemy();
+  }
+  levelTimer+=dt;
+  if(levelTimer>25){level++;resetLevel();}
+
+  for(let i=enemies.length-1;i>=0;i--){
+    const e=enemies[i];
+    if(e.hp<=0){enemies.splice(i,1);continue;}
+    if(e.frozen){e.frozenTimer-=dt;if(e.frozenTimer<=0){e.frozen=false;continue;}}
+    // Move toward player
+    const dx=player.x-e.x,dy=player.y-e.y;
+    const dist=Math.hypot(dx,dy)||1;
+    e.vx+=(dx/dist*e.type.speed-e.vx)*2*dt;
+    e.vy+=30*dt;
+    e.x+=e.vx*dt;e.y+=e.vy*dt;
+    // Hit ground
+    if(e.y>H-30-e.h/2){e.y=H-30-e.h/2;e.vy=0;}
+    // Hit player
+    if(!e.frozen&&Math.hypot(player.x-e.x,player.y-e.y)<30){
+      lives--;spawnParticles(player.x,player.y,'#ff4444',15);
+      enemies.splice(i,1);
+      if(lives<=0){gameOver=true;document.getElementById('overlay').innerHTML='<h2>💀 Game Over</h2>';}
+    }
+  }
+
+  // Powerup spawn
+  if(Math.random()<.001*level){
+    powerups.push({x:40+Math.random()*(W-80),y:-20,type:['⭐','❤️','⚡'][Math.floor(Math.random()*3)],life:10});
+  }
+  // Powerups
+  for(let i=powerups.length-1;i>=0;i--){
+    const p=powerups[i];p.y+=40*dt;p.life-=dt;
+    if(p.life<=0||p.y>H){powerups.splice(i,1);continue;}
+    if(Math.hypot(player.x-p.x,player.y-p.y)<30){
+      if(p.type==='⭐')score+=500;
+      if(p.type==='❤️')lives=Math.min(5,lives+1);
+      if(p.type==='⚡'){for(const e of enemies){e.frozen=true;e.frozenTimer=4;spawnParticles(e.x,e.y,'#ffff00',4);}}
+      spawnParticles(p.x,p.y,'#ffdd44',8);
+      powerups.splice(i,1);
+    }
+  }
+
+  // Particles
+  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=200*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1);}
+
+  // Level clear
+  if(enemies.length===0&&levelTimer>3){
+    level++;score+=level*100;
+    spawnParticles(player.x,player.y,'#ffdd44',20);
+    resetLevel();
+  }
+
+  // Update UI
+  document.getElementById('score-lbl').textContent='⭐ '+score;
+  document.getElementById('lives-lbl').textContent='❤️ '+lives;
+  document.getElementById('level-lbl').textContent='🏔️ Level '+level;
+}
+
+// Input
+window.addEventListener('keydown',e=>{
+  keys[e.key]=true;
+  if(e.key===' '||e.key==='Spacebar'){
+    e.preventDefault();
+    if(gameOver||!gameStarted)startGame();
+  }
+});
+window.addEventListener('keyup',e=>{keys[e.key]=false;});
+
+// Game loop
+let last=0;
+function loop(t){
+  const dt=(t-last)/1000;last=t;
+  update(dt);render();
+  requestAnimationFrame(loop);
+}
+resetLevel();last=performance.now();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
