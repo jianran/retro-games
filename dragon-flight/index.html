@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dragon Flight</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1e6fa8;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #app { width: 100vw; height: 100vh; position: relative; }
+
+    /* ── SCREENS ── */
+    .screen {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, #2a7db5 0%, #1e6fa8 70%);
+    }
+    .screen.hidden { display: none; }
+
+    h1 {
+      font-size: 3.5rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #ff6b35, #f7c59f, #ffdd44);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: none;
+      margin-bottom: 0.3rem;
+      letter-spacing: 2px;
+    }
+    h2 { font-size: 1.8rem; color: #aaa; margin-bottom: 2rem; }
+
+    .subtitle { color: #8888bb; margin-bottom: 3rem; font-size: 1.1rem; }
+
+    /* Player count selector */
+    .player-select {
+      display: flex; gap: 1.5rem; margin-bottom: 2.5rem;
+    }
+    .player-btn {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      border: 3px solid #444;
+      background: #111132;
+      color: #fff;
+      font-size: 1.6rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px;
+    }
+    .player-btn span { font-size: 0.55rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+    .player-btn:hover { border-color: #ff6b35; transform: scale(1.08); }
+    .player-btn.active {
+      border-color: #ffdd44;
+      background: #2a2a00;
+      box-shadow: 0 0 20px #ffdd4466;
+    }
+
+    /* Dragon config rows */
+    .dragon-config { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 2.5rem; width: 420px; }
+    .dragon-row {
+      display: flex; align-items: center; gap: 1rem;
+      background: #111132; border-radius: 12px; padding: 0.8rem 1.2rem;
+      border: 2px solid #222244;
+    }
+    .dragon-row .emoji { font-size: 2rem; }
+    .dragon-row .name-input {
+      flex: 1; background: transparent; border: none;
+      border-bottom: 2px solid #444; color: #fff;
+      font-size: 1rem; padding: 4px 6px;
+      outline: none;
+    }
+    .dragon-row .name-input:focus { border-bottom-color: #ffdd44; }
+    .dragon-row .badge {
+      font-size: 0.65rem; padding: 3px 8px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+    }
+    .badge.human { background: #1a6b3a; color: #5dffa0; border: 1px solid #2dff8a; }
+    .badge.npc   { background: #3a1a6b; color: #bb88ff; border: 1px solid #9955ff; }
+
+    /* Controls legend */
+    .controls-legend {
+      display: flex; gap: 2rem; margin-bottom: 2rem;
+      background: #111132; border-radius: 12px; padding: 1rem 2rem;
+    }
+    .ctrl-col { display: flex; flex-direction: column; gap: 0.3rem; }
+    .ctrl-label { font-size: 0.7rem; text-transform: uppercase; color: #8888bb; letter-spacing: 1px; margin-bottom: 0.2rem; }
+    .ctrl-key {
+      display: inline-block; background: #222; border: 1px solid #555;
+      border-radius: 5px; padding: 2px 7px; font-size: 0.8rem;
+      color: #ffdd44; font-family: monospace;
+    }
+
+    .start-btn {
+      padding: 1rem 3.5rem; font-size: 1.3rem;
+      background: linear-gradient(135deg, #ff6b35, #ffdd44);
+      color: #000; font-weight: 800; border: none;
+      border-radius: 50px; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      letter-spacing: 1px;
+    }
+    .start-btn:hover { transform: scale(1.06); box-shadow: 0 0 30px #ff6b3588; }
+
+    /* ── CANVAS SCREEN ── */
+    #game-screen {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+    }
+    #game-screen.hidden { display: none; }
+    #gameCanvas { display: block; width: 100%; height: 100%; }
+
+    /* ── WIN SCREEN ── */
+    #win-screen .trophy { font-size: 5rem; margin-bottom: 1rem; }
+    #win-screen .winner-text { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    #win-screen .winner-sub  { color: #aaa; margin-bottom: 2.5rem; font-size: 1.1rem; }
+
+    /* ── HUD overlay ── */
+    #hud {
+      position: absolute; top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-around;
+      padding: 10px 20px; pointer-events: none;
+      background: linear-gradient(to bottom, #0008, transparent);
+    }
+    .hud-card {
+      display: flex; flex-direction: column; align-items: center;
+      min-width: 90px;
+    }
+    .hud-name { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+    .hud-status { font-size: 0.7rem; height: 16px; }
+    .hud-bar-bg {
+      width: 80px; height: 6px; background: #333;
+      border-radius: 3px; overflow: hidden; margin-top: 3px;
+    }
+    .hud-bar { height: 100%; background: #44ff88; border-radius: 3px; transition: width 0.1s; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- START SCREEN -->
+  <div id="start-screen" class="screen">
+    <h1>DRAGON FLIGHT</h1>
+    <p class="subtitle">Fly your dragon to the finish line!</p>
+
+    <div style="margin-bottom:1rem; color:#8888bb; font-size:0.95rem;">How many human players?</div>
+    <div class="player-select">
+      <button class="player-btn active" data-count="1">1<span>player</span></button>
+      <button class="player-btn" data-count="2">2<span>players</span></button>
+      <button class="player-btn" data-count="3">3<span>players</span></button>
+    </div>
+
+    <div class="dragon-config" id="dragon-config">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="controls-legend" id="controls-legend">
+      <!-- filled by JS -->
+    </div>
+
+    <button class="start-btn" id="start-btn">FLY!</button>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen" class="hidden">
+    <div id="hud"></div>
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <!-- WIN SCREEN -->
+  <div id="win-screen" class="screen hidden">
+    <div class="trophy">🏆</div>
+    <div class="winner-text" id="winner-text"></div>
+    <div class="winner-sub" id="winner-sub"></div>
+    <button class="start-btn" id="play-again-btn">PLAY AGAIN</button>
+  </div>
+
+</div>
+<script src="game.js"></script>
+</body>
+</html>
