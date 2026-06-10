@@ -9,131 +9,274 @@
 body{background:#1a1a2e;display:flex;justify-content:center;align-items:center;height:100vh;font-family:system-ui,sans-serif;overflow:hidden}
 #game{position:relative;border:3px solid #333;border-radius:8px}
 canvas{display:block}
-#hud{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:4px;background:rgba(0,0,0,.7);padding:6px 10px;border-radius:8px}
-.hotbar{width:40px;height:40px;border:2px solid #555;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;background:rgba(255,255,255,.05)}
-.hotbar.sel{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,.3);background:rgba(255,255,255,.15)}
-#info{position:absolute;top:8px;left:8px;color:#fff;font-size:11px;background:rgba(0,0,0,.6);padding:4px 8px;border-radius:4px;pointer-events:none}
+#hud{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:3px;background:rgba(0,0,0,.8);padding:5px 8px;border-radius:6px;border:2px solid #444}
+.slot{width:36px;height:36px;border:2px solid #555;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;background:rgba(0,0,0,.3);position:relative}
+.slot.sel{border-color:#fff;box-shadow:0 0 6px rgba(255,255,255,.4);background:rgba(255,255,255,.15)}
+.slot .cnt{position:absolute;bottom:0;right:1px;font-size:8px;color:#fff;text-shadow:0 0 2px #000}
+#bars{position:absolute;bottom:56px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+.bar{width:160px;height:10px;background:#111;border:1px solid #333;border-radius:3px;overflow:hidden}
+.bar .fill{height:100%;transition:width .3s}
+#info{position:absolute;top:8px;left:50%;transform:translateX(-50%);color:#fff;font-size:12px;background:rgba(0,0,0,.7);padding:4px 10px;border-radius:4px;pointer-events:none;white-space:nowrap}
+#craft{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.8);border:2px solid #444;border-radius:6px;padding:6px;display:none;flex-direction:column;gap:4px}
+#craft .row{display:flex;gap:3px}
+#craft .cell{width:30px;height:30px;border:1px solid #555;border-radius:2px;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer}
+#craft .cell:hover{border-color:#fff}
+#craft .arrow{color:#fff;font-size:20px;display:flex;align-items:center}
+#craft .result{width:30px;height:30px;border:2px solid #ffaa44;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(255,170,68,.1);cursor:pointer}
+#craft .result:hover{background:rgba(255,170,68,.3)}
 </style>
 </head>
 <body>
 <div id="game">
   <canvas id="c"></canvas>
+  <div id="bars"><div class="bar" id="hp-bar"><div class="fill" style="width:100%;background:#ff4444"></div></div><div class="bar" id="food-bar"><div class="fill" style="width:100%;background:#cc8844"></div></div></div>
   <div id="info"></div>
-  <div id="hud">
-    <div class="hotbar sel" data-block="1" style="background:#7c9c4c">🟫</div>
-    <div class="hotbar" data-block="2" style="background:#8B7355">🟫</div>
-    <div class="hotbar" data-block="3" style="background:#888">⬜</div>
-    <div class="hotbar" data-block="4" style="background:#c4946c">🟫</div>
-    <div class="hotbar" data-block="5" style="background:#c8b880">🟨</div>
-    <div class="hotbar" data-block="6" style="background:#4488ff">🟦</div>
-    <div class="hotbar" data-block="7" style="background:#44aa44">🟩</div>
-    <div class="hotbar" data-block="8" style="background:#ff4444">🟥</div>
+  <div id="hud"></div>
+  <div id="craft">
+    <div class="row"><div class="cell" data-ci="0"></div><div class="cell" data-ci="1"></div><div class="cell" data-ci="2"></div></div>
+    <div class="row"><div class="cell" data-ci="3"></div><div class="cell" data-ci="4"></div><div class="cell" data-ci="5"></div></div>
+    <div class="row"><div class="cell" data-ci="6"></div><div class="cell" data-ci="7"></div><div class="cell" data-ci="8"></div></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:2px"><span class="arrow">→</span><div class="result" id="craft-result"></div></div>
   </div>
 </div>
 <script>
 const c=document.getElementById('c'),ctx=c.getContext('2d');
 const W=800,H=500;c.width=W;c.height=H;
-
-const worldW=100,worldH=70,blockS=20;
+const worldW=120,worldH=80,BS=20;
 const world=[];
-let player={x:400,y:250,vx:0,vy:0,speed:220};
+let player={x:500,y:300,vx:0,vy:0,speed:200,hp:20,maxHp:20,food:20,maxFood:20,onGround:false};
+let keys={},camX=0,camY=0,dayTime=0,selSlot=0;
+// Inventory: {blockId: count}
+let inv={'1':99,'2':0,'3':0,'4':0,'5':0,'6':0,'7':0,'8':0,'9':0,'10':0,'11':0,'12':0};
+const hotbar=[1,2,3,4,5,6,7,8]; // Which blocks in hotbar
+let craftOpen=false,craftGrid=Array(9).fill(0),mobs=[],particles=[],miningProgress=0,miningBlock=null;
 
-const BLOCKS={1:{name:'Dirt',color:'#8b9c4c'},2:{name:'Wood',color:'#8B7355'},3:{name:'Stone',color:'#7f8f8f'},
-4:{name:'Planks',color:'#c4946c'},5:{name:'Sand',color:'#c8b880'},6:{name:'Water',color:'#4488ff'},
-7:{name:'Leaves',color:'#44aa44'},8:{name:'Brick',color:'#cc4444'}};
-let selBlock=1,keys={},camX=0,camY=0,dayTime=0;
+const BLOCKS={1:{name:'Grass',color:'#7c9c4c',top:'#6ab04c',emoji:'🟩'},2:{name:'Dirt',color:'#8b6c3c',emoji:'🟫'},
+3:{name:'Stone',color:'#7f8f8f',emoji:'⬜'},4:{name:'Wood',color:'#8B7355',emoji:'🟫'},
+5:{name:'Planks',color:'#c4946c',emoji:'🟫'},6:{name:'Sand',color:'#c8b880',emoji:'🟨'},
+7:{name:'Water',color:'#4488ff',emoji:'🟦'},8:{name:'Leaves',color:'#44aa44',emoji:'🟩'},
+9:{name:'Cobblestone',color:'#6f6f6f',emoji:'🪨'},10:{name:'Glass',color:'rgba(180,220,255,.5)',emoji:'💠'},
+11:{name:'CraftTable',color:'#b8945c',emoji:'🔧'},12:{name:'Brick',color:'#cc5544',emoji:'🧱'}};
+
+// Crafting recipes: "ingredients pattern" -> {result, count, needsTable}
+const RECIPES={
+  '2,2,2,2':{r:5,c:4}, // 4x wood -> 4 planks
+  '5,5,5,5':{r:11,c:1}, // 4 planks -> craft table
+  '5,0,5,0,5,0':{r:5,c:16}, // 3 planks V -> 16 planks? nah let me keep simple
+  '3,3,3,3':{r:9,c:4}, // 4 stone -> 4 cobblestone
+  '5,5,0,5,5,0,0,5,0':{r:5,c:8}, // planks shape -> more planks
+};
+
+function recipeKey(grid){return grid.filter((_,i)=>i<9).join(',').replace(/,0/g,',0').replace(/0,/g,'0,')}
+function getCraftResult(grid){
+  const nonZero=grid.filter(b=>b>0);
+  if(nonZero.length===4&&nonZero.every(b=>b===2))return{r:5,c:4}; // 4 wood -> 4 planks
+  if(nonZero.length===4&&nonZero.every(b=>b===5))return{r:11,c:1}; // 4 planks -> craft table
+  if(nonZero.length===4&&nonZero.every(b=>b===3))return{r:9,c:4}; // 4 stone -> 4 cobblestone
+  if(nonZero.length===4&&nonZero.every(b=>b===9))return{r:3,c:4}; // 4 cobble -> 4 stone
+  if(nonZero.length===4&&nonZero.every(b=>b===4))return{r:5,c:4}; // 4 wood logs -> 4 planks
+  return null;
+}
 
 function generate(){
   for(let x=0;x<worldW;x++){
-    world[x]=[];
-    const h=28+Math.sin(x*0.25)*8+Math.sin(x*0.6)*4+Math.sin(x*0.1)*14;
+    world[x]=[];const h=30+Math.sin(x*.2)*10+Math.sin(x*.5)*4+Math.sin(x*.08)*16;
     for(let y=0;y<worldH;y++){
-      if(y>h+4)world[x][y]=3;else if(y>=h)world[x][y]=1;else world[x][y]=0;
+      if(y>h+5)world[x][y]=3;else if(y>h)world[x][y]=1;else if(y===Math.floor(h))world[x][y]=1;else world[x][y]=0;
     }
   }
-  for(let cave=0;cave<6;cave++){
-    let cx=15+Math.floor(Math.random()*70),cy=22+Math.floor(Math.random()*30);
-    for(let s=0;s<250;s++){
-      cx+=Math.floor(Math.random()*3)-1;cy+=Math.floor(Math.random()*3)-1;
-      if(cx>1&&cx<worldW-1&&cy>6&&cy<worldH-6){
-        for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++)world[cx+dx]&&Math.random()<.55&&(world[cx+dx][cy+dy]=0);
-      }
-    }
+  for(let cave=0;cave<7;cave++){
+    let cx=15+Math.floor(Math.random()*90),cy=24+Math.floor(Math.random()*35);
+    for(let s=0;s<300;s++){cx+=Math.floor(Math.random()*3)-1;cy+=Math.floor(Math.random()*3)-1;
+      if(cx>1&&cx<worldW-2&&cy>6&&cy<worldH-6)for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++)world[cx+dx]&&Math.random()<.5&&world[cx+dx][cy+dy]!==0&&world[cx+dx][cy+dy]!==6&&(world[cx+dx][cy+dy]=0);}
   }
-  for(let x=6;x<worldW-6;x+=5+Math.floor(Math.random()*7)){
+  for(let x=7;x<worldW-7;x+=5+Math.floor(Math.random()*8)){
     let sy=0;for(let y=0;y<worldH;y++)if(world[x][y]!==0){sy=y;break}
-    if(sy>6&&sy<42&&Math.random()<.65){
-      for(let ty=0;ty<5;ty++)world[x][sy-1-ty]=2;
-      for(let lx=-3;lx<=3;lx++)for(let ly=-4;ly<=-1;ly++){
-        if(Math.abs(lx)===3&&Math.abs(ly)>=3)continue;
-        world[x+lx]&&world[x+lx][sy-5+ly]===0&&(world[x+lx][sy-5+ly]=7);
-      }
-    }
+    if(sy>6&&sy<45&&Math.random()<.6){for(let ty=0;ty<5;ty++)world[x][sy-1-ty]=4;
+      for(let lx=-3;lx<=3;lx++)for(let ly=-4;ly<=-1;ly++){if(Math.abs(lx)===3&&Math.abs(ly)>=3)continue;world[x+lx]&&world[x+lx][sy-5+ly]===0&&(world[x+lx][sy-5+ly]=8);}}
   }
-  for(let x=2;x<worldW-2;x++){
-    let sy=0;for(let y=0;y<worldH;y++)if(world[x][y]!==0){sy=y;break}
-    if(sy<24&&sy>10&&Math.random()<.12){
-      for(let dx=-4;dx<=4;dx++)for(let dy=0;dy<3;dy++)world[x+dx]&&world[x+dx][sy+dy]===0&&(world[x+dx][sy+dy]=6);
-    }
-  }
-  for(let x=0;x<worldW;x++)for(let y=0;y<worldH;y++){
-    if(world[x][y]===6)for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)world[x+dx]&&world[x+dx][y+dy]===1&&(world[x+dx][y+dy]=5);
-  }
+  for(let x=3;x<worldW-3;x++){let sy=0;for(let y=0;y<worldH;y++)if(world[x][y]!==0){sy=y;break}
+    if(sy<26&&sy>12&&Math.random()<.1)for(let dx=-4;dx<=4;dx++)for(let dy=0;dy<3;dy++)world[x+dx]&&world[x+dx][sy+dy]===0&&(world[x+dx][sy+dy]=7);}
+  for(let x=0;x<worldW;x++)for(let y=0;y<worldH;y++){if(world[x][y]===7)for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)world[x+dx]&&world[x+dx][y+dy]===1&&(world[x+dx][y+dy]=6);}
+  // Grass tops
+  for(let x=0;x<worldW;x++)for(let y=0;y<worldH;y++){if(world[x][y]===1&&world[x][y-1]===0)world[x][y]=1;}
+  // Spawn mobs
+  for(let i=0;i<15;i++){mobs.push({x:200+Math.random()*800,y:200,type:'pig',hp:8,vx:0,vy:0,aiT:Math.random()*3});}
+}
+
+function placeBlock(bx,by,blockId){
+  if(!world[bx]||world[bx][by]!==0)return false;
+  if(inv[blockId]<=0)return false;
+  world[bx][by]=blockId;inv[blockId]--;return true;
+}
+function breakBlock(bx,by){
+  if(!world[bx]||world[bx][by]<=0)return;
+  const b=world[bx][by];world[bx][by]=0;
+  // Add to inventory
+  let drop=b;if(b===1)drop=2; // Grass drops dirt
+  inv[drop]=(inv[drop]||0)+1;
+  for(let i=0;i<6;i++)particles.push({x:bx*BS+BS/2,y:by*BS+BS/2,vx:(Math.random()-.5)*60,vy:-40-Math.random()*60,life:.5,color:BLOCKS[b]?.color||'#888',size:3});
 }
 
 function update(dt){
-  if(dt>.1)dt=.1;dayTime+=dt*.5;
+  if(dt>.1)dt=.1;dayTime+=dt*.3;
+  const isNight=Math.sin(dayTime)<0;
+  // Movement
   if(keys['KeyW']||keys['ArrowUp'])player.vy=-player.speed;else if(keys['KeyS']||keys['ArrowDown'])player.vy=player.speed;else player.vy*=0.8;
   if(keys['KeyA']||keys['ArrowLeft'])player.vx=-player.speed;else if(keys['KeyD']||keys['ArrowRight'])player.vx=player.speed;else player.vx*=0.8;
+  if(keys['Space']&&player.onGround){player.vy=-350;player.onGround=false}
+  if(keys['Digit1'])selSlot=0;if(keys['Digit2'])selSlot=1;if(keys['Digit3'])selSlot=2;if(keys['Digit4'])selSlot=3;
+  if(keys['Digit5'])selSlot=4;if(keys['Digit6'])selSlot=5;if(keys['Digit7'])selSlot=6;if(keys['Digit8'])selSlot=7;
+  if(keys['KeyE']){craftOpen=!craftOpen;keys['KeyE']=false;document.getElementById('craft').style.display=craftOpen?'flex':'none';}
+
+  player.vy+=800*dt; // Gravity
   player.x+=player.vx*dt;player.y+=player.vy*dt;
-  player.x=Math.max(blockS,Math.min(worldW*blockS-blockS,player.x));
-  player.y=Math.max(blockS,Math.min(worldH*blockS-blockS,player.y));
+  // Block collision
+  const px=player.x,py=player.y;
+  for(let dx=-1;dx<=1;dx+=2){const bx=Math.floor((px+dx*8)/BS),by=Math.floor(py/BS);if(world[bx]&&world[bx][by]&&world[bx][by]!==7)player.x=Math.floor(player.x/BS)*BS+(dx>0?BS-8:8)}
+  const byGround=Math.floor((py+10)/BS);const bxFoot=Math.floor(px/BS);
+  if(world[bxFoot]&&world[bxFoot][byGround]&&world[bxFoot][byGround]!==7){player.y=byGround*BS-10;player.vy=0;player.onGround=true}
+  else player.onGround=false;
+  // Fall damage
+  if(player.onGround&&player._fallDist>60){player.hp-=Math.floor((player._fallDist-60)/30);player._fallDist=0}else if(!player.onGround)player._fallDist=(player._fallDist||0)+Math.abs(player.vy)*dt;
+  else player._fallDist=0;
+  player.x=Math.max(BS,Math.min(worldW*BS-BS,player.x));player.y=Math.max(BS,Math.min(worldH*BS-BS,player.y));
   camX+=(player.x-W/2-camX)*5*dt;camY+=(player.y-H/2-camY)*5*dt;
-  if(keys._break){const bx=Math.floor((W/2+camX)/blockS),by=Math.floor((H/2+camY)/blockS);if(world[bx]&&world[bx][by]&&world[bx][by]!==6)world[bx][by]=0;keys._break=false;}
-  if(keys._place){const bx=Math.floor((W/2+camX)/blockS),by=Math.floor((H/2+camY)/blockS);if(world[bx]&&world[bx][by]===0){world[bx][by]=selBlock;keys._place=false;}}
+
+  // Mining (hold left click)
+  if(keys._break&&!craftOpen){
+    const bx=Math.floor((W/2+camX)/BS),by=Math.floor((H/2+camY)/BS);
+    if(world[bx]&&world[bx][by]&&world[bx][by]!==7){
+      if(miningBlock&&miningBlock.x===bx&&miningBlock.y===by)miningProgress+=dt;
+      else{miningProgress=0;miningBlock={x:bx,y:by};}
+      const needTime=world[bx][by]===3?.6:.25;
+      if(miningProgress>=needTime){breakBlock(bx,by);miningProgress=0;miningBlock=null;}
+    }else{miningProgress=0;miningBlock=null;}
+  }else{miningProgress=0;miningBlock=null;}
+
+  // Place block (right click)
+  if(keys._place&&!craftOpen){const bx=Math.floor((W/2+camX)/BS),by=Math.floor((H/2+camY)/BS);if(world[bx]&&world[bx][by]===0)placeBlock(bx,by,hotbar[selSlot]);keys._place=false;}
+
+  // Mobs
+  for(const m of mobs){
+    m.aiT-=dt;if(m.aiT<=0){m.aiT=1+Math.random()*2;m.vx=(Math.random()-.5)*60;if(Math.random()<.4)m.vy=-80;}
+    m.vy+=500*dt;m.x+=m.vx*dt;m.y+=m.vy*dt;
+    const mbx=Math.floor(m.x/BS),mby=Math.floor((m.y+8)/BS);
+    if(world[mbx]&&world[mbx][mby]&&world[mbx][mby]!==7){m.y=mby*BS-8;m.vy=0;}
+    if(m.x<BS||m.x>worldW*BS-BS)m.vx*=-1;
+    // Zombies chase player at night
+    if(m.type==='zombie'&&isNight){const dx=player.x-m.x,dy=player.y-m.y,d=Math.hypot(dx,dy)||1;m.vx=(dx/d)*40;if(d<100&&Math.random()<.3)player.hp-=1;}
+  }
+  // Spawn zombies at night
+  if(isNight&&Math.random()<.02*dt*10&&mobs.filter(m=>m.type==='zombie').length<8){mobs.push({x:player.x+(Math.random()-.5)*500,y:player.y-100,type:'zombie',hp:10,vx:0,vy:0,aiT:1});}
+
+  // Hunger
+  player.food-=dt*.05;if(player.food<=0)player.hp-=dt*.5;
+  if(player.hp<=0){player.hp=20;player.food=20;player.x=500;player.y=300;camX=0;camY=0;inv['1']=10;inv['2']=0;inv['4']=5;}
+
+  // Particles
+  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=200*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1);}
+
+  // Update UI
+  document.getElementById('hp-bar').children[0].style.width=(player.hp/player.maxHp*100)+'%';
+  document.getElementById('food-bar').children[0].style.width=(player.food/player.maxFood*100)+'%';
 }
 
 function render(){
-  const sb=Math.sin(dayTime)*.4+.6;
+  const sb=Math.sin(dayTime)*.35+.65;
   const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,`rgb(${40*sb|0},${60*sb|0},${140*sb|0})`);
-  g.addColorStop(1,`rgb(${100*sb|0},${140*sb|0},${200*sb|0})`);
+  g.addColorStop(0,`rgb(${30*sb|0},${50*sb|0},${120*sb|0})`);
+  g.addColorStop(1,`rgb(${80*sb|0},${120*sb|0},${180*sb|0})`);
   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+
+  // Stars at night
+  if(Math.sin(dayTime)<.2)for(let i=0;i<50;i++){ctx.fillStyle='#fff';ctx.globalAlpha=.7;ctx.beginPath();ctx.arc((i*137+53)%W,(i*89+17)%(H*.5),.5+Math.random(),0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+
   ctx.save();ctx.translate(-camX,-camY);
-  const sx=Math.max(0,Math.floor(camX/blockS)-1),ex=Math.min(worldW,Math.ceil((camX+W)/blockS)+1);
-  const sy=Math.max(0,Math.floor(camY/blockS)-1),ey=Math.min(worldH,Math.ceil((camY+H)/blockS)+1);
+  const sx=Math.max(0,Math.floor(camX/BS)-2),ex=Math.min(worldW,Math.ceil((camX+W)/BS)+2);
+  const sy=Math.max(0,Math.floor(camY/BS)-2),ey=Math.min(worldH,Math.ceil((camY+H)/BS)+2);
   for(let x=sx;x<ex;x++)for(let y=sy;y<ey;y++){
     if(!world[x]||world[x][y]===0)continue;
-    const b=world[x][y],bx=x*blockS,by=y*blockS;
-    if(b===6){ctx.fillStyle='rgba(68,136,255,.75)';ctx.fillRect(bx,by,blockS,blockS)}
-    else{ctx.fillStyle=BLOCKS[b]?.color||'#888';ctx.fillRect(bx,by,blockS,blockS);
-      ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(bx+blockS-2,by,2,blockS);ctx.fillRect(bx,by+blockS-2,blockS,2);
-      ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(bx,by,2,blockS);ctx.fillRect(bx,by,blockS,2);}
+    const b=world[x][y],bx=x*BS,by=y*BS;
+    if(b===7){ctx.fillStyle='rgba(68,136,255,.7)';ctx.fillRect(bx,by,BS,BS);ctx.fillStyle='rgba(255,255,255,.2)';ctx.fillRect(bx,by,BS,3);}
+    else{const bc=BLOCKS[b];ctx.fillStyle=bc?.color||'#888';ctx.fillRect(bx,by,BS,BS);
+      // Grass top
+      if(b===1){ctx.fillStyle='#6ab04c';ctx.fillRect(bx,by,BS,4);}
+      // Dark edges
+      ctx.fillStyle='rgba(0,0,0,.25)';ctx.fillRect(bx+BS-2,by,2,BS);ctx.fillRect(bx,by+BS-2,BS,2);
+      ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(bx,by,2,BS);ctx.fillRect(bx,by,BS,2);
+    }
   }
-  ctx.fillStyle='#4488ff';ctx.fillRect(player.x-6,player.y-6,12,12);
-  ctx.fillStyle='#fff';ctx.fillRect(player.x-2,player.y-6,4,12);
-  ctx.fillStyle='#000';ctx.fillRect(player.x-1,player.y-4,2,2);
+  // Mobs
+  for(const m of mobs){
+    const isPig=m.type==='pig';
+    ctx.fillStyle=isPig?'#ffaaaa':'#445544';ctx.fillRect(m.x-6,m.y-6,12,isPig?8:12);
+    if(isPig){ctx.fillStyle='#ff8888';ctx.fillRect(m.x-3,m.y-9,6,8);}
+    else{ctx.fillStyle='#335533';ctx.fillRect(m.x-3,m.y-12,6,14);ctx.fillStyle='#ff0000';ctx.fillRect(m.x-2,m.y-13,2,2);ctx.fillRect(m.x+2,m.y-13,2,2);}
+  }
+  // Mining progress bar
+  if(miningBlock&&miningProgress>0){const mbx=miningBlock.x*BS,mby=miningBlock.y*BS;ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(mbx,mby-8,BS,5);ctx.fillStyle='#fff';ctx.fillRect(mbx,mby-8,BS*Math.min(1,miningProgress/(world[miningBlock.x]?.[miningBlock.y]===3?.6:.25)),5);}
+  // Player
+  ctx.fillStyle='#4488ff';ctx.fillRect(player.x-6,player.y-10,12,14);
+  ctx.fillStyle='#ffcc88';ctx.fillRect(player.x-3,player.y-14,6,6);
+  ctx.fillStyle='#fff';ctx.fillRect(player.x-2,player.y-6,4,10);
+  ctx.fillStyle='#000';ctx.fillRect(player.x-1,player.y-12,2,2);
+  // Particles
+  for(const p of particles){ctx.fillStyle=p.color;ctx.globalAlpha=p.life/.5;ctx.fillRect(p.x-2,p.y-2,4,4)}ctx.globalAlpha=1;
   ctx.restore();
-  ctx.strokeStyle='#fff';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(W/2-8,H/2);ctx.lineTo(W/2-3,H/2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(W/2+3,H/2);ctx.lineTo(W/2+8,H/2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(W/2,H/2-8);ctx.lineTo(W/2,H/2-3);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(W/2,H/2+3);ctx.lineTo(W/2,H/2+8);ctx.stroke();
+
+  // Crosshair + mining crack
+  ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=2;
+  if(miningProgress>0){ctx.globalAlpha=.5+Math.sin(performance.now()/50)*.3;ctx.strokeStyle='#fff'}
+  ctx.beginPath();ctx.moveTo(W/2-8,H/2);ctx.lineTo(W/2-3,H/2);ctx.stroke();ctx.beginPath();ctx.moveTo(W/2+3,H/2);ctx.lineTo(W/2+8,H/2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W/2,H/2-8);ctx.lineTo(W/2,H/2-3);ctx.stroke();ctx.beginPath();ctx.moveTo(W/2,H/2+3);ctx.lineTo(W/2,H/2+8);ctx.stroke();ctx.globalAlpha=1;
+
+  // Selected block outline
+  const hsx=Math.floor((W/2+camX)/BS)*BS-camX,hsy=Math.floor((H/2+camY)/BS)*BS-camY;
+  ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=1;ctx.strokeRect(hsx,hsy,BS,BS);
+
+  // Crafting UI
+  if(craftOpen){renderCraft()}
 }
 
-window.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE')keys._place=true;e.preventDefault()});
+function renderCraft(){
+  for(let i=0;i<9;i++){const el=document.querySelector(`[data-ci="${i}"]`);if(el){const b=craftGrid[i];el.style.background=b?b===3?'#7f8f8f':b===2?'#8b6c3c':b===4?'#8B7355':b===5?'#c4946c':b===9?'#6f6f6f':'#888':'rgba(0,0,0,.3)';el.textContent=b?BLOCKS[b]?.emoji||'?':''}}
+  const res=getCraftResult(craftGrid);
+  const rel=document.getElementById('craft-result');
+  if(res){rel.style.background=BLOCKS[res.r]?.color||'#888';rel.textContent=BLOCKS[res.r]?.emoji+'x'+res.c}else{rel.style.background='rgba(0,0,0,.3)';rel.textContent=''}
+}
+
+function updateHud(){
+  let h='';
+  for(let i=0;i<8;i++){const b=hotbar[i];h+=`<div class="slot${i===selSlot?' sel':''}" data-slot="${i}"><span>${BLOCKS[b]?.emoji||'?'}</span><span class="cnt">${inv[b]||0}</span></div>`}
+  document.getElementById('hud').innerHTML=h;
+  document.querySelectorAll('.slot').forEach(el=>el.addEventListener('click',()=>{selSlot=parseInt(el.dataset.slot);updateHud()}));
+}
+
+// Controls
+window.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Digit1')selSlot=0;if(e.code==='Digit2')selSlot=1;if(e.code==='Digit3')selSlot=2;if(e.code==='Digit4')selSlot=3;if(e.code==='Digit5')selSlot=4;if(e.code==='Digit6')selSlot=5;if(e.code==='Digit7')selSlot=6;if(e.code==='Digit8')selSlot=7;if(e.code==='KeyE'){craftOpen=!craftOpen;keys.KeyE=false;document.getElementById('craft').style.display=craftOpen?'flex':'none';}if(e.code==='KeyQ'){const res=getCraftResult(craftGrid);if(res){inv[res.r]=(inv[res.r]||0)+res.c;craftGrid.fill(0);}}e.preventDefault();updateHud()});
 window.addEventListener('keyup',e=>{keys[e.code]=false});
-c.addEventListener('mousedown',e=>{e.button===0?keys._break=true:keys._place=true});
+c.addEventListener('mousedown',e=>{if(craftOpen)return;e.button===0?keys._break=true:keys._place=true});
+c.addEventListener('mouseup',e=>{if(e.button===0)keys._break=false});
 c.addEventListener('contextmenu',e=>e.preventDefault());
-c.addEventListener('wheel',e=>{e.preventDefault();selBlock+=e.deltaY>0?1:-1;if(selBlock>8)selBlock=1;if(selBlock<1)selBlock=8;updateHotbar()});
-function updateHotbar(){document.querySelectorAll('.hotbar').forEach(e=>e.classList.toggle('sel',parseInt(e.dataset.block)===selBlock))}
-document.querySelectorAll('.hotbar').forEach(el=>el.addEventListener('click',()=>{selBlock=parseInt(el.dataset.block);updateHotbar()}));
+c.addEventListener('wheel',e=>{if(craftOpen)return;e.preventDefault();selSlot+=e.deltaY>0?1:-1;if(selSlot>7)selSlot=0;if(selSlot<0)selSlot=7;updateHud()});
+
+// Crafting grid clicks
+document.querySelectorAll('#craft .cell').forEach(el=>el.addEventListener('click',()=>{
+  const ci=parseInt(el.dataset.ci);const b=hotbar[selSlot];
+  if(craftGrid[ci]===b)craftGrid[ci]=0;else{if(inv[b]>0){if(craftGrid[ci]>0){inv[craftGrid[ci]]=(inv[craftGrid[ci]]||0)+1}inv[b]--;craftGrid[ci]=b;}
+  renderCraft();updateHud();
+}));
+document.getElementById('craft-result').addEventListener('click',()=>{
+  const res=getCraftResult(craftGrid);if(res){inv[res.r]=(inv[res.r]||0)+res.c;craftGrid.fill(0);renderCraft();updateHud()}
+});
 
 let lt=0;
 function loop(t){const dt=(t-lt)/1000;lt=t;update(dt);render();
-  document.getElementById('info').innerHTML=`XYZ: ${Math.floor((W/2+camX)/blockS)},${Math.floor((H/2+camY)/blockS)} | ${BLOCKS[selBlock]?.name||'?'} | WASD=Move Click=Break E/RClick=Place`;
+  const b=hotbar[selSlot];document.getElementById('info').innerHTML=`XYZ: ${Math.floor((W/2+camX)/BS)},${Math.floor((H/2+camY)/BS)} | ${BLOCKS[b]?.name||'?'} (${inv[b]||0}) | ${Math.sin(dayTime)<0?'🌙 Night':'☀️ Day'} | HP:${player.hp} | E=Craft`;
   requestAnimationFrame(loop);}
-generate();lt=performance.now();requestAnimationFrame(loop);
+
+generate();updateHud();lt=performance.now();requestAnimationFrame(loop);
 </script>
 </body>
 </html>
