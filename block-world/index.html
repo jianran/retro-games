@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Block World — Retro Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;display:flex;justify-content:center;align-items:center;height:100vh;font-family:system-ui,sans-serif;overflow:hidden}
+#game{position:relative;border:3px solid #333;border-radius:8px}
+canvas{display:block}
+#hud{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:4px;background:rgba(0,0,0,.7);padding:6px 10px;border-radius:8px}
+.hotbar{width:40px;height:40px;border:2px solid #555;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;background:rgba(255,255,255,.05)}
+.hotbar.sel{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,.3);background:rgba(255,255,255,.15)}
+#info{position:absolute;top:8px;left:8px;color:#fff;font-size:11px;background:rgba(0,0,0,.6);padding:4px 8px;border-radius:4px;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="game">
+  <canvas id="c"></canvas>
+  <div id="info"></div>
+  <div id="hud">
+    <div class="hotbar sel" data-block="1" style="background:#7c9c4c">🟫</div>
+    <div class="hotbar" data-block="2" style="background:#8B7355">🟫</div>
+    <div class="hotbar" data-block="3" style="background:#888">⬜</div>
+    <div class="hotbar" data-block="4" style="background:#c4946c">🟫</div>
+    <div class="hotbar" data-block="5" style="background:#c8b880">🟨</div>
+    <div class="hotbar" data-block="6" style="background:#4488ff">🟦</div>
+    <div class="hotbar" data-block="7" style="background:#44aa44">🟩</div>
+    <div class="hotbar" data-block="8" style="background:#ff4444">🟥</div>
+  </div>
+</div>
+<script>
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+const W=800,H=500;c.width=W;c.height=H;
+
+const worldW=100,worldH=70,blockS=20;
+const world=[];
+let player={x:400,y:250,vx:0,vy:0,speed:220};
+
+const BLOCKS={1:{name:'Dirt',color:'#8b9c4c'},2:{name:'Wood',color:'#8B7355'},3:{name:'Stone',color:'#7f8f8f'},
+4:{name:'Planks',color:'#c4946c'},5:{name:'Sand',color:'#c8b880'},6:{name:'Water',color:'#4488ff'},
+7:{name:'Leaves',color:'#44aa44'},8:{name:'Brick',color:'#cc4444'}};
+let selBlock=1,keys={},camX=0,camY=0,dayTime=0;
+
+function generate(){
+  for(let x=0;x<worldW;x++){
+    world[x]=[];
+    const h=28+Math.sin(x*0.25)*8+Math.sin(x*0.6)*4+Math.sin(x*0.1)*14;
+    for(let y=0;y<worldH;y++){
+      if(y>h+4)world[x][y]=3;else if(y>=h)world[x][y]=1;else world[x][y]=0;
+    }
+  }
+  for(let cave=0;cave<6;cave++){
+    let cx=15+Math.floor(Math.random()*70),cy=22+Math.floor(Math.random()*30);
+    for(let s=0;s<250;s++){
+      cx+=Math.floor(Math.random()*3)-1;cy+=Math.floor(Math.random()*3)-1;
+      if(cx>1&&cx<worldW-1&&cy>6&&cy<worldH-6){
+        for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++)world[cx+dx]&&Math.random()<.55&&(world[cx+dx][cy+dy]=0);
+      }
+    }
+  }
+  for(let x=6;x<worldW-6;x+=5+Math.floor(Math.random()*7)){
+    let sy=0;for(let y=0;y<worldH;y++)if(world[x][y]!==0){sy=y;break}
+    if(sy>6&&sy<42&&Math.random()<.65){
+      for(let ty=0;ty<5;ty++)world[x][sy-1-ty]=2;
+      for(let lx=-3;lx<=3;lx++)for(let ly=-4;ly<=-1;ly++){
+        if(Math.abs(lx)===3&&Math.abs(ly)>=3)continue;
+        world[x+lx]&&world[x+lx][sy-5+ly]===0&&(world[x+lx][sy-5+ly]=7);
+      }
+    }
+  }
+  for(let x=2;x<worldW-2;x++){
+    let sy=0;for(let y=0;y<worldH;y++)if(world[x][y]!==0){sy=y;break}
+    if(sy<24&&sy>10&&Math.random()<.12){
+      for(let dx=-4;dx<=4;dx++)for(let dy=0;dy<3;dy++)world[x+dx]&&world[x+dx][sy+dy]===0&&(world[x+dx][sy+dy]=6);
+    }
+  }
+  for(let x=0;x<worldW;x++)for(let y=0;y<worldH;y++){
+    if(world[x][y]===6)for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)world[x+dx]&&world[x+dx][y+dy]===1&&(world[x+dx][y+dy]=5);
+  }
+}
+
+function update(dt){
+  if(dt>.1)dt=.1;dayTime+=dt*.5;
+  if(keys['KeyW']||keys['ArrowUp'])player.vy=-player.speed;else if(keys['KeyS']||keys['ArrowDown'])player.vy=player.speed;else player.vy*=0.8;
+  if(keys['KeyA']||keys['ArrowLeft'])player.vx=-player.speed;else if(keys['KeyD']||keys['ArrowRight'])player.vx=player.speed;else player.vx*=0.8;
+  player.x+=player.vx*dt;player.y+=player.vy*dt;
+  player.x=Math.max(blockS,Math.min(worldW*blockS-blockS,player.x));
+  player.y=Math.max(blockS,Math.min(worldH*blockS-blockS,player.y));
+  camX+=(player.x-W/2-camX)*5*dt;camY+=(player.y-H/2-camY)*5*dt;
+  if(keys._break){const bx=Math.floor((W/2+camX)/blockS),by=Math.floor((H/2+camY)/blockS);if(world[bx]&&world[bx][by]&&world[bx][by]!==6)world[bx][by]=0;keys._break=false;}
+  if(keys._place){const bx=Math.floor((W/2+camX)/blockS),by=Math.floor((H/2+camY)/blockS);if(world[bx]&&world[bx][by]===0){world[bx][by]=selBlock;keys._place=false;}}
+}
+
+function render(){
+  const sb=Math.sin(dayTime)*.4+.6;
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,`rgb(${40*sb|0},${60*sb|0},${140*sb|0})`);
+  g.addColorStop(1,`rgb(${100*sb|0},${140*sb|0},${200*sb|0})`);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.translate(-camX,-camY);
+  const sx=Math.max(0,Math.floor(camX/blockS)-1),ex=Math.min(worldW,Math.ceil((camX+W)/blockS)+1);
+  const sy=Math.max(0,Math.floor(camY/blockS)-1),ey=Math.min(worldH,Math.ceil((camY+H)/blockS)+1);
+  for(let x=sx;x<ex;x++)for(let y=sy;y<ey;y++){
+    if(!world[x]||world[x][y]===0)continue;
+    const b=world[x][y],bx=x*blockS,by=y*blockS;
+    if(b===6){ctx.fillStyle='rgba(68,136,255,.75)';ctx.fillRect(bx,by,blockS,blockS)}
+    else{ctx.fillStyle=BLOCKS[b]?.color||'#888';ctx.fillRect(bx,by,blockS,blockS);
+      ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(bx+blockS-2,by,2,blockS);ctx.fillRect(bx,by+blockS-2,blockS,2);
+      ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(bx,by,2,blockS);ctx.fillRect(bx,by,blockS,2);}
+  }
+  ctx.fillStyle='#4488ff';ctx.fillRect(player.x-6,player.y-6,12,12);
+  ctx.fillStyle='#fff';ctx.fillRect(player.x-2,player.y-6,4,12);
+  ctx.fillStyle='#000';ctx.fillRect(player.x-1,player.y-4,2,2);
+  ctx.restore();
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(W/2-8,H/2);ctx.lineTo(W/2-3,H/2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W/2+3,H/2);ctx.lineTo(W/2+8,H/2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W/2,H/2-8);ctx.lineTo(W/2,H/2-3);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W/2,H/2+3);ctx.lineTo(W/2,H/2+8);ctx.stroke();
+}
+
+window.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE')keys._place=true;e.preventDefault()});
+window.addEventListener('keyup',e=>{keys[e.code]=false});
+c.addEventListener('mousedown',e=>{e.button===0?keys._break=true:keys._place=true});
+c.addEventListener('contextmenu',e=>e.preventDefault());
+c.addEventListener('wheel',e=>{e.preventDefault();selBlock+=e.deltaY>0?1:-1;if(selBlock>8)selBlock=1;if(selBlock<1)selBlock=8;updateHotbar()});
+function updateHotbar(){document.querySelectorAll('.hotbar').forEach(e=>e.classList.toggle('sel',parseInt(e.dataset.block)===selBlock))}
+document.querySelectorAll('.hotbar').forEach(el=>el.addEventListener('click',()=>{selBlock=parseInt(el.dataset.block);updateHotbar()}));
+
+let lt=0;
+function loop(t){const dt=(t-lt)/1000;lt=t;update(dt);render();
+  document.getElementById('info').innerHTML=`XYZ: ${Math.floor((W/2+camX)/blockS)},${Math.floor((H/2+camY)/blockS)} | ${BLOCKS[selBlock]?.name||'?'} | WASD=Move Click=Break E/RClick=Place`;
+  requestAnimationFrame(loop);}
+generate();lt=performance.now();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
