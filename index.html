@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retro Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#0a0a1a;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+}
+header{
+  width:100%;padding:16px 24px;background:linear-gradient(135deg,#1a0a2e,#0a1a2e);
+  border-bottom:2px solid #333;text-align:center;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+}
+header h1{font-size:28px;letter-spacing:2px;background:linear-gradient(90deg,#ff6644,#ffaa44,#ff6644);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+header .tag{font-size:10px;color:#888;letter-spacing:1px;text-transform:uppercase;}
+.game-grid{
+  display:flex;flex-wrap:wrap;gap:20px;padding:30px;justify-content:center;max-width:1100px;
+}
+.game-card{
+  width:300px;background:#111;border:2px solid #222;border-radius:16px;overflow:hidden;
+  transition:all .2s;cursor:pointer;text-decoration:none;color:#fff;
+}
+.game-card:hover{border-color:#ff6644;transform:translateY(-4px);box-shadow:0 12px 40px rgba(255,100,60,.2);}
+.game-card .thumb{
+  height:180px;background:linear-gradient(135deg,#1a1a2e,#16213e);
+  display:flex;align-items:center;justify-content:center;font-size:60px;
+}
+.game-card .info{padding:16px;}
+.game-card .info h3{font-size:18px;margin-bottom:4px;}
+.game-card .info p{font-size:11px;color:#888;line-height:1.4;}
+.badge{
+  display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;
+  background:#44cc44;color:#000;margin-top:6px;
+}
+footer{
+  margin-top:auto;padding:16px;color:#444;font-size:11px;text-align:center;
+  border-top:1px solid #1a1a1a;width:100%;
+}
+</style>
+</head>
+<body>
+<header>
+  <span style="font-size:32px;">🕹️</span>
+  <div>
+    <h1>Retro Games</h1>
+    <div class="tag">Free Browser Games — No Downloads</div>
+  </div>
+</header>
+
+<div class="game-grid">
+  <a href="elemental-merge/" class="game-card">
+    <div class="thumb">🌊🔥🪨💨</div>
+    <div class="info">
+      <h3>Elemental Merge</h3>
+      <p>Strategic auto-battler. Merge elemental creatures, build your army, and survive infinite waves. 10 evolution tiers, 8 merge chains, PvP duels!</p>
+      <span class="badge">🔥 POPULAR</span>
+      <span class="badge" style="background:#ffaa44;">📡 Offline</span>
+    </div>
+  </a>
+</div>
+
+<footer>
+  Retro Games © 2026 &mdash; Free browser games. No downloads. No sign-ups. Just play.
+</footer>
+</body>
+</html>
