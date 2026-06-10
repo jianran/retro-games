@@ -10,46 +10,39 @@
 body{background:#0a0a1a;color:#fff;font-family:system-ui,sans-serif;padding:20px}
 h1{text-align:center;font-size:36px;margin-bottom:4px;background:linear-gradient(90deg,#ff6644,#ffaa44,#ff6644);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .subtitle{text-align:center;color:#888;font-size:12px;margin-bottom:30px;letter-spacing:2px;text-transform:uppercase}
-.games{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;max-width:1000px;margin:0 auto}
-.card{width:300px;background:#111;border:2px solid #333;border-radius:12px;overflow:hidden;text-decoration:none;color:#fff;transition:all .2s;display:block}
-.card:hover{border-color:#ff6644;transform:translateY(-4px);box-shadow:0 8px 30px rgba(255,100,60,.3)}
-.card .img{height:140px;display:flex;align-items:center;justify-content:center;font-size:60px}
-.card .txt{padding:14px}
-.card .txt h3{font-size:16px;margin-bottom:4px}
-.card .txt p{font-size:11px;color:#888;line-height:1.4}
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin:2px}
-.badge-pop{background:#44cc44;color:#000}
-.badge-new{background:#44aaff;color:#fff}
-.badge-off{background:#ffaa44;color:#000}
-footer{text-align:center;color:#444;font-size:11px;margin-top:40px;padding-top:20px;border-top:1px solid #1a1a1a}
+.games{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;max-width:1000px;margin:0 auto}
+.card{width:220px;background:#111;border:2px solid #333;border-radius:10px;overflow:hidden;text-decoration:none;color:#fff;transition:all .2s;display:block}
+.card:hover{border-color:#ff6644;transform:translateY(-4px)}
+.card .img{height:100px;display:flex;align-items:center;justify-content:center;font-size:44px}
+.card .txt{padding:10px}
+.card .txt h3{font-size:14px;margin-bottom:3px}
+.badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin:1px}
+.bg-pop{background:#44cc44;color:#000}.bg-new{background:#44aaff;color:#fff}.bg-off{background:#ffaa44;color:#000}
+footer{text-align:center;color:#444;font-size:11px;margin-top:30px;padding-top:16px;border-top:1px solid #1a1a1a}
 </style>
 </head>
 <body>
 <h1>🕹️ Retro Games</h1>
-<p class="subtitle">Free Browser Games — No Downloads — No Sign-Ups — Works Offline</p>
-
+<p class="subtitle">Free Browser Games — No Downloads — No Sign-Ups — Works Offline — 17 Games</p>
 <div class="games">
-
-<a class="card" href="elemental-merge/">
-  <div class="img" style="background:linear-gradient(135deg,#1a1a2e,#16213e)">🌊🔥🪨💨</div>
-  <div class="txt"><h3>Elemental Merge</h3><p>Strategic auto-battler. Merge creatures, build armies, survive waves. 10 tiers, duels, bosses!</p>
-  <span class="badge badge-pop">🔥 POPULAR</span><span class="badge badge-off">📡 Offline</span></div>
-</a>
-
-<a class="card" href="snowman-bros/">
-  <div class="img" style="background:linear-gradient(135deg,#0a1628,#1a3a5a)">⛄</div>
-  <div class="txt"><h3>Snowman Bros</h3><p>Arcade action! Throw snowballs, freeze enemies, kick to score combos!</p>
-  <span class="badge badge-new">🆕 NEW</span><span class="badge badge-off">📡 Offline</span></div>
-</a>
-
-<a class="card" href="dragon-flight/">
-  <div class="img" style="background:linear-gradient(135deg,#1a0a0a,#4a1a1a)">🐉</div>
-  <div class="txt"><h3>Dragon Flight</h3><p>Soar through the skies as a mighty dragon! Dodge, collect, fly!</p>
-  <span class="badge badge-new">🆕 NEW</span><span class="badge badge-off">📡 Offline</span></div>
-</a>
-
+<a class="card" href="elemental-merge/"><div class="img" style="background:linear-gradient(135deg,#1a1a2e,#16213e)">🌊🔥</div><div class="txt"><h3>Elemental Merge</h3><span class="badge bg-pop">POPULAR</span><span class="badge bg-off">Offline</span></div></a>
+<a class="card" href="snowman-bros/"><div class="img" style="background:linear-gradient(135deg,#0a1628,#1a3a5a)">⛄</div><div class="txt"><h3>Snowman Bros</h3><span class="badge bg-off">Offline</span></div></a>
+<a class="card" href="dragon-flight/"><div class="img" style="background:linear-gradient(135deg,#1a0a0a,#4a1a1a)">🐉</div><div class="txt"><h3>Dragon Flight</h3><span class="badge bg-off">Offline</span></div></a>
+<a class="card" href="games/2048.html"><div class="img" style="background:#2a2a1a">🔢</div><div class="txt"><h3>2048</h3><span class="badge bg-pop">CLASSIC</span></div></a>
+<a class="card" href="games/pacman.html"><div class="img" style="background:#1a1a3a">🟡</div><div class="txt"><h3>Pac-Man</h3><span class="badge bg-pop">CLASSIC</span></div></a>
+<a class="card" href="games/tetris.html"><div class="img" style="background:#1a2a1a">🧱</div><div class="txt"><h3>Tetris</h3><span class="badge bg-pop">CLASSIC</span></div></a>
+<a class="card" href="games/snake.html"><div class="img" style="background:#2a1a1a">🐍</div><div class="txt"><h3>Snake</h3><span class="badge bg-pop">CLASSIC</span></div></a>
+<a class="card" href="games/flappybird.html"><div class="img" style="background:#1a2a3a">🐦</div><div class="txt"><h3>Flappy Bird</h3><span class="badge bg-pop">CLASSIC</span></div></a>
+<a class="card" href="games/dinosaur.html"><div class="img" style="background:#2a2a1a">🦖</div><div class="txt"><h3>Dino Runner</h3><span class="badge bg-off">Offline</span></div></a>
+<a class="card" href="games/planewar.html"><div class="img" style="background:#1a1a2a">✈️</div><div class="txt"><h3>Plane War</h3></div></a>
+<a class="card" href="games/tank.html"><div class="img" style="background:#1a2a1a">🔫</div><div class="txt"><h3>Tank Battle</h3></div></a>
+<a class="card" href="games/memory.html"><div class="img" style="background:#2a1a2a">🧠</div><div class="txt"><h3>Memory Match</h3></div></a>
+<a class="card" href="games/puzzle.html"><div class="img" style="background:#1a1a2a">🧩</div><div class="txt"><h3>Puzzle</h3></div></a>
+<a class="card" href="games/daxigua.html"><div class="img" style="background:#1a2a2a">🍉</div><div class="txt"><h3>Suika Game</h3><span class="badge bg-new">NEW</span></div></a>
+<a class="card" href="games/jump.html"><div class="img" style="background:#2a2a3a">🦘</div><div class="txt"><h3>Jump</h3></div></a>
+<a class="card" href="games/run.html"><div class="img" style="background:#2a1a1a">🏃</div><div class="txt"><h3>Runner</h3></div></a>
+<a class="card" href="games/rubikscube.html"><div class="img" style="background:#1a1a1a">🟥</div><div class="txt"><h3>Rubik's Cube</h3></div></a>
 </div>
-
-<footer>Retro Games &copy; 2026 — Play free, anywhere, no WiFi needed.</footer>
+<footer>Retro Games &copy; 2026 — Play free, anywhere, no WiFi needed. 17 games and growing!</footer>
 </body>
 </html>
