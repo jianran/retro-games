@@ -2119,22 +2119,22 @@ function showUnitInfo(u){
 
 // ─── INIT ────────────────────────────────────────────────────
 function init(){
-  generateNPCs(); // Ensure NPC armies exist
-  const profiles=getProfiles();
+  try{generateNPCs();}catch(e){console.log('NPC gen error:',e);}
+  let profiles=[];
+  try{profiles=getProfiles();}catch(e){console.log('Profile error:',e);}
+  try{
   if(profiles.length===0){
-    // First time — auto-create a profile
     const p=createProfile('Player');
     activeProfile=p;
     const ld=loadGame(p.id);
-    if(!ld){const s1=createBasic('water'),s2=createBasic('fire');S.bench.push(s1,s2);}
+    if(!ld){const s1=createBasic('water');const s2=createBasic('fire');S.bench.push(s1,s2);}
     document.getElementById('btn-profile').textContent='👤 Player';
-    updateUI();resize();lt=performance.now();requestAnimationFrame(loop);
-    setTimeout(()=>toast('🎮 Welcome! Buy units → Drag to grid → Merge → FIGHT!'),500);
   }else{
-    // Show profile picker
     showProfileSelector();
-    updateUI();resize();lt=performance.now();requestAnimationFrame(loop);
   }
+  }catch(e){console.log('Init error:',e);}
+  updateUI();resize();lt=performance.now();requestAnimationFrame(loop);
+  if(!activeProfile||(activeProfile&&!loadGame(activeProfile.id)))setTimeout(()=>toast('🎮 Welcome! Buy units → Drag to grid → Merge → FIGHT!'),500);
 }
 
 // Profile button
