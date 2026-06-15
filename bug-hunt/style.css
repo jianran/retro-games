@@ -1,0 +1,497 @@
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #030308;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Courier New', Courier, monospace;
+  overflow: hidden;
+}
+
+/* ── Container ─────────────────────────────────────────── */
+#game-container {
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── HUD ───────────────────────────────────────────────── */
+#hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 18px;
+  background: rgba(0, 8, 28, 0.96);
+  border: 1px solid #0033bb;
+  border-bottom: none;
+  color: #00ccff;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+#power-display { color: #ffcc00; }
+#lives-display { font-size: 18px; }
+#bomb-display  { font-size: 14px; color: #446677; transition: color .2s; }
+#bomb-display.ready { color: #ff6600; animation: bomb-pulse .7s ease-in-out infinite alternate; }
+#spray-display { font-size: 14px; color: #446677; transition: color .2s; }
+#spray-display.ready { color: #44ffaa; animation: spray-pulse .8s ease-in-out infinite alternate; }
+@keyframes bomb-pulse {
+  from { text-shadow: 0 0 4px #ff6600; }
+  to   { text-shadow: 0 0 14px #ff9900, 0 0 28px rgba(255,120,0,.5); }
+}
+@keyframes spray-pulse {
+  from { text-shadow: 0 0 4px #44ffaa; }
+  to   { text-shadow: 0 0 14px #44ffaa, 0 0 28px rgba(60,255,160,.5); }
+}
+
+/* ── Game Area ─────────────────────────────────────────── */
+#game-area {
+  position: relative;
+  width: 800px;
+  height: 600px;
+  overflow: hidden;
+  border: 1px solid #0033bb;
+  box-shadow: 0 0 50px rgba(0, 60, 200, 0.25), inset 0 0 80px rgba(0, 0, 40, 0.6);
+  background:
+    radial-gradient(ellipse at 30% 0%,   rgba(0, 0, 80, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 100%, rgba(0, 20, 60, 0.4) 0%, transparent 50%),
+    linear-gradient(180deg, #000018 0%, #00001c 50%, #000012 100%);
+}
+
+/* Parallax starfield using CSS background pattern */
+#game-area::before,
+#game-area::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+#game-area::before {
+  background-image:
+    radial-gradient(circle, #fff 1px, transparent 1px),
+    radial-gradient(circle, rgba(255,255,255,.55) 1px, transparent 1px),
+    radial-gradient(circle, rgba(200,220,255,.35) 1px, transparent 1px);
+  background-size: 220px 220px, 160px 160px, 110px 110px;
+  background-position: 30px 20px, 90px 110px, 55px 70px;
+  animation: stars1 18s linear infinite;
+}
+#game-area::after {
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.4) 1px, transparent 1px),
+    radial-gradient(circle, rgba(180,210,255,.3) 1px, transparent 1px);
+  background-size: 180px 180px, 130px 130px;
+  background-position: 10px 50px, 70px 140px;
+  animation: stars2 28s linear infinite;
+}
+@keyframes stars1 {
+  from { background-position: 30px 20px,   90px 110px,  55px 70px; }
+  to   { background-position: 30px 240px,  90px 330px,  55px 290px; }
+}
+@keyframes stars2 {
+  from { background-position: 10px 50px,   70px 140px; }
+  to   { background-position: 10px 270px,  70px 360px; }
+}
+
+/* ── Player ────────────────────────────────────────────── */
+.plane {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  font-size: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  filter: drop-shadow(0 0 6px rgba(80, 160, 255, .7));
+  transition: filter .15s;
+}
+
+/* Thruster flame */
+.plane::after {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 14px;
+  border-radius: 0 0 60% 60%;
+  background: linear-gradient(to bottom, #ff8800, transparent);
+  animation: thr 0.14s ease-in-out infinite alternate;
+  z-index: -1;
+}
+@keyframes thr {
+  from { height: 10px; opacity: .9; width: 6px; }
+  to   { height: 22px; opacity: .65; width: 8px; }
+}
+
+/* Power 2 – orange */
+.plane.pwr2 { filter: drop-shadow(0 0 8px rgba(255,140,40,.9)); }
+.plane.pwr2::after {
+  background: linear-gradient(to bottom, #ff7700, transparent);
+  width: 8px;
+  box-shadow: -10px 0 0 rgba(255,120,0,.5), 10px 0 0 rgba(255,120,0,.5);
+}
+
+/* Power 3 – green */
+.plane.pwr3 { filter: drop-shadow(0 0 10px rgba(40,255,140,.9)); }
+.plane.pwr3::after {
+  background: linear-gradient(to bottom, #00ffaa, transparent);
+  width: 10px;
+  box-shadow: -14px 0 0 rgba(0,255,160,.5), 14px 0 0 rgba(0,255,160,.5);
+}
+
+/* Power 4 – purple */
+.plane.pwr4 { filter: drop-shadow(0 0 14px rgba(200,40,255,1)); }
+.plane.pwr4::after {
+  background: linear-gradient(to bottom, #cc00ff, transparent);
+  width: 14px;
+  box-shadow: -18px 0 0 rgba(200,0,255,.6), 18px 0 0 rgba(200,0,255,.6);
+  animation: thr4 0.14s ease-in-out infinite alternate;
+}
+@keyframes thr4 {
+  from { height: 18px; width: 14px; }
+  to   { height: 32px; width: 20px; }
+}
+
+/* Invincibility blink */
+.plane.inv { animation: inv-blink .12s step-end infinite; }
+@keyframes inv-blink { 50% { opacity: 0; } }
+
+/* Oura – golden ring */
+.plane.oura {
+  box-shadow: 0 0 0 3px #ffd700, 0 0 18px #ffd700, 0 0 40px rgba(255,215,0,0.55);
+  animation: oura-pulse .7s ease-in-out infinite alternate;
+}
+.plane.inv.oura { animation: inv-blink .12s step-end infinite, oura-pulse .7s ease-in-out infinite alternate; }
+@keyframes oura-pulse {
+  from { box-shadow: 0 0 0 3px #ffd700, 0 0 12px #ffd700, 0 0 28px rgba(255,215,0,0.5); }
+  to   { box-shadow: 0 0 0 4px #ffd700, 0 0 26px #ffd700, 0 0 55px rgba(255,215,0,0.8); }
+}
+
+/* ── Bullets ───────────────────────────────────────────── */
+.bullet {
+  position: absolute;
+  border-radius: 4px;
+  z-index: 9;
+}
+.bullet.pwr1 {
+  background: linear-gradient(to top, #0099ff, #ccf0ff);
+  box-shadow: 0 0 6px #0099ff, 0 0 14px rgba(0,150,255,.4);
+}
+.bullet.pwr2 {
+  background: linear-gradient(to top, #ff6600, #ffee44);
+  box-shadow: 0 0 8px #ff6600, 0 0 18px rgba(255,100,0,.4);
+}
+.bullet.pwr3 {
+  background: linear-gradient(to top, #00ff88, #ccffee);
+  box-shadow: 0 0 10px #00ff88, 0 0 22px rgba(0,255,136,.4);
+}
+.bullet.pwr4 {
+  background: linear-gradient(to top, #cc00ff, #ff88ff);
+  box-shadow: 0 0 12px #cc00ff, 0 0 28px rgba(200,0,255,.5);
+}
+
+/* ── Boss ──────────────────────────────────────────────── */
+.boss {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 8;
+  font-size: 74px;
+  filter: drop-shadow(0 0 16px rgba(255, 80, 0, 0.9));
+  animation: boss-idle 1.3s ease-in-out infinite alternate;
+}
+@keyframes boss-idle {
+  from { transform: scale(1)    rotate(-3deg); }
+  to   { transform: scale(1.07) rotate(3deg);  }
+}
+
+#boss-bar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56%;
+  z-index: 25;
+  pointer-events: none;
+}
+#boss-bar.hidden { display: none; }
+#boss-name {
+  color: #ff4400;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.18em;
+  text-align: center;
+  text-shadow: 0 0 10px #ff4400;
+  margin-bottom: 4px;
+}
+#boss-bar-track {
+  height: 14px;
+  background: rgba(0,0,0,0.65);
+  border: 1px solid #cc2200;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(255,50,0,0.45), inset 0 0 6px rgba(0,0,0,0.5);
+}
+#boss-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(to right, #880000, #dd2200, #ff6600);
+  border-radius: 6px;
+  transition: width 0.15s ease-out;
+  box-shadow: 0 0 8px rgba(255,60,0,0.6);
+}
+
+/* ── Bugs ──────────────────────────────────────────────── */
+.bug {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 8;
+  font-size: 26px;
+  animation: flap .22s steps(2) infinite;
+}
+.bug-beetle  { font-size: 28px; }
+.bug-wasp    { font-size: 24px; animation-duration: .18s; }
+.bug-mosquito { font-size: 22px; animation-duration: .15s; }
+
+@keyframes flap {
+  0%   { transform: scaleX(1)  rotate(-4deg); }
+  50%  { transform: scaleX(-1) rotate(4deg);  }
+  100% { transform: scaleX(1)  rotate(-4deg); }
+}
+
+/* ── Gems ──────────────────────────────────────────────── */
+.gem {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 7;
+}
+/* Small gem – blue pulse */
+.gv1 { animation: pulse-blue 1.3s ease-in-out infinite alternate; }
+@keyframes pulse-blue {
+  from { filter: drop-shadow(0 0 3px #44aaff)  brightness(1);   }
+  to   { filter: drop-shadow(0 0 12px #44aaff) brightness(1.3); }
+}
+/* Medium gem – purple pulse */
+.gv3 { animation: pulse-purple .95s ease-in-out infinite alternate; }
+@keyframes pulse-purple {
+  from { filter: drop-shadow(0 0 4px #aa44ff)  brightness(1);   }
+  to   { filter: drop-shadow(0 0 16px #aa44ff) brightness(1.45); }
+}
+/* Large gem – gold pulse */
+.gv10 { animation: pulse-gold .75s ease-in-out infinite alternate; }
+@keyframes pulse-gold {
+  from { filter: drop-shadow(0 0 6px #ffcc00)  brightness(1.1); }
+  to   { filter: drop-shadow(0 0 22px #ffcc00) drop-shadow(0 0 36px rgba(255,210,0,.4)) brightness(1.6); }
+}
+
+/* ── Overlay ───────────────────────────────────────────── */
+#overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 20, 0.87);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+#overlay.hidden { display: none; }
+
+.overlay-content {
+  text-align: center;
+  color: #fff;
+  padding: 44px 52px;
+  border: 1px solid rgba(0, 80, 200, .4);
+  border-radius: 12px;
+  background: rgba(0, 8, 28, .6);
+}
+
+#overlay-title {
+  font-size: 54px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #00aaff 0%, #00ffcc 50%, #aa44ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 10px;
+  letter-spacing: .02em;
+  animation: title-glow 2s ease-in-out infinite alternate;
+}
+@keyframes title-glow {
+  from { filter: brightness(1);   }
+  to   { filter: brightness(1.35); }
+}
+
+#overlay-sub {
+  color: #88bbdd;
+  font-size: 16px;
+  margin-bottom: 8px;
+  letter-spacing: .05em;
+}
+#final-score {
+  color: #ffdd44;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 22px;
+  min-height: 32px;
+}
+
+#action-btn {
+  display: block;
+  margin: 0 auto 22px;
+  padding: 13px 42px;
+  font-size: 20px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  letter-spacing: .08em;
+  background: linear-gradient(135deg, #002277, #0044cc);
+  color: #00ddff;
+  border: 2px solid #0066ff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .2s;
+}
+#action-btn:hover {
+  background: linear-gradient(135deg, #003399, #0066ff);
+  box-shadow: 0 0 22px rgba(0,100,255,.6), 0 0 44px rgba(0,100,255,.25);
+  transform: scale(1.07);
+}
+#action-btn:active { transform: scale(.98); }
+
+.instructions {
+  color: #4466aa;
+  font-size: 12px;
+  line-height: 2;
+  letter-spacing: .04em;
+}
+
+/* ── Heart Pickup ──────────────────────────────────────── */
+.heart-pickup {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 7;
+  animation: heart-float 1s ease-in-out infinite alternate;
+}
+@keyframes heart-float {
+  from { filter: drop-shadow(0 0 4px #ff4488);  transform: scale(1);    }
+  to   { filter: drop-shadow(0 0 14px #ff4488); transform: scale(1.12); }
+}
+
+/* ── Kordak (Boss 2) ───────────────────────────────────── */
+.boss2 {
+  font-size: 66px;
+  filter: drop-shadow(0 0 18px rgba(80, 80, 255, 0.9));
+  animation: kordak-idle 0.9s ease-in-out infinite alternate;
+}
+@keyframes kordak-idle {
+  from { transform: scale(1)    rotate(-2deg) translateY(0);    }
+  to   { transform: scale(1.06) rotate(2deg)  translateY(-5px); }
+}
+.boss2.kordak-rest {
+  animation: kordak-breathe 0.55s ease-in-out infinite alternate !important;
+}
+@keyframes kordak-breathe {
+  from { transform: scale(0.93) rotate(0deg); opacity: 0.65;
+         filter: drop-shadow(0 0 6px rgba(80, 80, 200, 0.4)); }
+  to   { transform: scale(1.00) rotate(0deg); opacity: 0.85;
+         filter: drop-shadow(0 0 14px rgba(80, 80, 255, 0.6)); }
+}
+
+/* ── Chain Slam projectile ─────────────────────────────── */
+.chain-slam {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9;
+  font-size: 26px;
+  filter: drop-shadow(0 0 10px rgba(120, 120, 255, 0.95));
+  animation: chain-spin 0.4s linear infinite;
+}
+@keyframes chain-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Pyrax (Boss 4) ────────────────────────────────────── */
+.boss4 {
+  font-size: 70px;
+  filter: drop-shadow(0 0 18px rgba(255, 100, 0, 0.95));
+  animation: pyrax-idle 0.5s ease-in-out infinite alternate;
+}
+@keyframes pyrax-idle {
+  from { transform: scale(1)    rotate(-5deg); }
+  to   { transform: scale(1.1)  rotate(5deg);  }
+}
+.boss4.pyrax-charging {
+  animation: pyrax-charge 0.12s ease-in-out infinite alternate !important;
+}
+@keyframes pyrax-charge {
+  from { transform: scale(1.15); filter: drop-shadow(0 0 24px rgba(255,80,0,1))  brightness(1.6); }
+  to   { transform: scale(1.28); filter: drop-shadow(0 0 48px rgba(255,220,0,1)) brightness(2.8); }
+}
+
+/* ── Nova shot ─────────────────────────────────────────── */
+.nova-shot {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 15%, #ffcc00 50%, #ff4400 100%);
+  box-shadow: 0 0 8px #ff6600, 0 0 20px rgba(255, 120, 0, 0.8);
+  z-index: 9;
+}
+.boss3 {
+  font-size: 68px;
+  filter: drop-shadow(0 0 18px rgba(0, 255, 100, 0.95));
+  animation: vexar-idle 0.38s steps(2) infinite;
+}
+@keyframes vexar-idle {
+  0%   { transform: scale(1)    translateY(0);    }
+  50%  { transform: scale(1.09) translateY(-5px); }
+  100% { transform: scale(1)    translateY(0);    }
+}
+
+/* ── Vexar plasma shot ─────────────────────────────────── */
+.vexar-shot {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ccffcc 20%, #00ff88 70%);
+  box-shadow: 0 0 8px #00ff88, 0 0 20px rgba(0,255,136,.7);
+  z-index: 9;
+}
+
+/* ── Arachnis (Boss 5) ─────────────────────────────────── */
+.boss5 {
+  font-size: 72px;
+  filter: drop-shadow(0 0 20px rgba(160, 0, 255, 0.95));
+  animation: arachnis-idle 1.4s ease-in-out infinite alternate;
+}
+@keyframes arachnis-idle {
+  from { transform: scale(1)    translateY(0);   }
+  to   { transform: scale(1.08) translateY(7px); }
+}
+
+/* ── Homing shot ───────────────────────────────────────── */
+.homing-shot {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 10%, #cc44ff 50%, #550088 100%);
+  box-shadow: 0 0 10px #aa00ff, 0 0 24px rgba(180, 0, 255, 0.8);
+  z-index: 9;
+  animation: homing-pulse 0.4s ease-in-out infinite alternate;
+}
+@keyframes homing-pulse {
+  from { box-shadow: 0 0 8px #aa00ff,  0 0 18px rgba(180,0,255,0.7); }
+  to   { box-shadow: 0 0 16px #dd44ff, 0 0 36px rgba(220,0,255,0.9); }
+}
