@@ -5439,9 +5439,9 @@ SB.Scenes = {
           const score = d.score;
           const p1Lives = d.player.lives;
           const p2Lives = d.player2 ? d.player2.lives : 0;
-          this.switchTo('Playing');
           this._data.score = score;
           this._data._carryLives = [p1Lives, p2Lives];
+          this.switchTo('Playing');
         }
       }
       return;
