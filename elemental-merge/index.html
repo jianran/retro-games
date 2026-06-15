@@ -86,10 +86,10 @@ body{
 .bench-slot.occupied{border-style:solid;border-color:#666;}
 
 #canvas-wrapper{
-  flex:1;background:var(--panel-bg);border:2px solid var(--border);
+  flex:1;background:#0d1117;min-width:400px;min-height:320px;border:2px solid var(--border);
   border-radius:10px;overflow:hidden;position:relative;
 }
-canvas{display:block;width:100%;height:100%;}
+canvas{display:block;width:100%;height:100%;min-height:320px;}
 
 #bottom-bar{
   display:flex;gap:10px;align-items:center;
@@ -142,7 +142,7 @@ canvas{display:block;width:100%;height:100%;}
   #main-area{flex-direction:column;}
   #shop-panel{width:100%;flex-direction:row;flex-wrap:wrap;justify-content:center;}
   #shop-panel h3{width:100%;}
-  #canvas-wrapper{min-height:400px;}
+  #canvas-wrapper{min-height:320px;}
 }
 </style>
 </head>
@@ -2133,7 +2133,9 @@ function init(){
     showProfileSelector();
   }
   }catch(e){console.log('Init error:',e);}
-  updateUI();resize();lt=performance.now();requestAnimationFrame(loop);
+  updateUI();resize();
+  try{const cc=document.getElementById('game-canvas');if(cc){const cx=cc.getContext('2d');cc.width=cc.width||800;cc.height=cc.height||500;cx.fillStyle='#0d1117';cx.fillRect(0,0,cc.width,cc.height);cx.fillStyle='#44cc44';cx.font='bold 16px system-ui';cx.textAlign='center';cx.fillText('⚔️ Battle Area Ready',cc.width/2,cc.height/2);}}catch(e){}
+  lt=performance.now();requestAnimationFrame(loop);
   if(!activeProfile||(activeProfile&&!loadGame(activeProfile.id)))setTimeout(()=>toast('🎮 Welcome! Buy units → Drag to grid → Merge → FIGHT!'),500);
 }
 
