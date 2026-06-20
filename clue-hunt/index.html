@@ -1780,7 +1780,6 @@ function handleCommand(raw) {
           showCombatLog(); describeLocation(); updateStatus();
         } else { out('\x1b[33mNot found. Use \'new '+escapeHtml(name)+'\'.\x1b[0m'); }
       });
-      else { out('\x1b[33mNot found. Use \'new '+escapeHtml(name)+'\'.\x1b[0m'); }
       updateStatus();
       return;
     }
