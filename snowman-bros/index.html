@@ -329,12 +329,12 @@ SB.TouchButtons = {
   _getButtons() {
     const scale = Math.min(window.innerWidth / SB.CONFIG.W, window.innerHeight / SB.CONFIG.H);
     const tiny = scale < 0.65; // phone portrait
-    const dirW = tiny ? 56 : 72;
-    const dirH = tiny ? 42 : 52;
-    const actW = tiny ? 72 : 90;
-    const actH = tiny ? 42 : 48;
-    const gap = tiny ? 3 : 6;
-    const margin = tiny ? 4 : 8;
+    const dirW = tiny ? 80 : 110;
+    const dirH = tiny ? 60 : 80;
+    const actW = tiny ? 100 : 140;
+    const actH = tiny ? 56 : 70;
+    const gap = tiny ? 6 : 10;
+    const margin = tiny ? 6 : 12;
     const row1 = SB.CONFIG.H - dirH - margin; // bottom row
     const row2 = row1 - dirH - gap; // second row for 2P
     const is2P = SB.Scenes._pendingMode === '2P' || (SB.Scenes._data && SB.Scenes._data.player2);
@@ -4287,21 +4287,50 @@ SB.generateLevel = function(floorNum) {
   const platforms = SB._genPlatforms(5 + Math.floor(floorNum/20), floorNum);
   const platYs = [];
   for (const p of platforms) { if (!platYs.includes(p.y)) platYs.push(p.y); }
-  // Enemy pool evolves with floor progress
+  // Enemy pool evolves with floor progress — more granular per-level variety
   const getEnemyPool = (fn) => {
-    if (fn <= 10) return ['goblin'];
-    if (fn <= 20) return ['goblin','ninja'];
-    if (fn <= 30) return ['goblin','ninja','monster'];
-    if (fn <= 40) return ['goblin','ninja','monster','monkey'];
-    if (fn <= 60) return ['ninja','monster','monkey','yeti'];
-    if (fn <= 90) return ['monster','monkey','yeti','jellyfish'];
-    return ['monkey','yeti','jellyfish','snake'];
+    // Core pool changes every 5 floors for steady progression
+    if (fn <= 5)  return ['goblin'];
+    if (fn <= 10) return ['goblin','ninja'];
+    if (fn <= 15) return ['goblin','ninja','monster'];
+    if (fn <= 20) return ['goblin','ninja','monster','goblin']; // extra goblin rookies
+    if (fn <= 25) return ['ninja','monster','monkey'];
+    if (fn <= 30) return ['ninja','monster','monkey','goblin']; // veteran goblin
+    if (fn <= 35) return ['monster','monkey','yeti'];
+    if (fn <= 40) return ['monster','monkey','yeti','ninja']; // ninja scouts
+    if (fn <= 45) return ['monkey','yeti','jellyfish'];
+    if (fn <= 50) return ['monkey','yeti','jellyfish','monster']; // fire support
+    if (fn <= 55) return ['yeti','jellyfish','snake'];
+    if (fn <= 60) return ['yeti','jellyfish','snake','monkey']; // agile flankers
+    if (fn <= 65) return ['jellyfish','snake','monster','yeti'];
+    if (fn <= 70) return ['jellyfish','snake','monkey','ninja'];
+    if (fn <= 75) return ['snake','yeti','jellyfish','monster'];
+    if (fn <= 80) return ['snake','yeti','monkey','ninja'];
+    if (fn <= 85) return ['yeti','jellyfish','snake','monster','monkey'];
+    if (fn <= 90) return ['jellyfish','snake','yeti','monkey','ninja'];
+    if (fn <= 95) return ['snake','yeti','jellyfish','monster','monkey'];
+    // 96+ = full mixed pool with occasional surprise
+    return ['monkey','yeti','jellyfish','snake','monster','ninja','goblin'];
   };
   const pool = getEnemyPool(floorNum);
-  const enemyCount = 3 + Math.floor(floorNum / 15);
+  // Enemy count varies more dynamically — 2 to 9 based on floor
+  const enemyCount = 2 + Math.floor(floorNum / 10) + (Math.random() < 0.3 ? 1 : 0) + (Math.random() < 0.15 ? 1 : 0);
   const enemies = [];
-  for (let i = 0; i < Math.min(enemyCount, 8); i++) {
-    const etype = pool[Math.floor(Math.random() * pool.length)];
+  // Pick a "signature" enemy for this floor — the one that appears most
+  const signatureType = pool[Math.floor(Math.random() * pool.length)];
+  for (let i = 0; i < Math.min(enemyCount, 9); i++) {
+    // 40% chance of signature enemy, 50% random from pool, 10% wildcard from adjacent pool
+    let etype;
+    const roll = Math.random();
+    if (roll < 0.4) {
+      etype = signatureType;
+    } else if (roll < 0.9) {
+      etype = pool[Math.floor(Math.random() * pool.length)];
+    } else {
+      // Wildcard — pick from a broader set
+      const wildcards = ['goblin','ninja','monster','monkey','yeti','jellyfish','snake'];
+      etype = wildcards[Math.floor(Math.random() * wildcards.length)];
+    }
     const platY = (platYs[Math.floor(Math.random() * platYs.length)] || 568) - 28;
     enemies.push({ type: etype, x: SB.Utils.rand(100, 700), y: SB.Utils.clamp(platY, 100, 500) });
   }
@@ -4319,8 +4348,8 @@ SB.generateLevel = function(floorNum) {
 
 SB._genPlatforms = function(count, floorNum) {
   const platforms = [{ x:0, y:568, w:800, h:32, type:'solid' }];
-  // Pick a layout style based on floor number — 6 different patterns
-  const style = (floorNum % 6);
+  // Pick a layout style based on floor number — 12 different patterns
+  const style = (floorNum % 12);
   const heights = [520, 470, 420, 370, 320, 270, 220, 180];
 
   if (style === 0) {
@@ -4373,7 +4402,7 @@ SB._genPlatforms = function(count, floorNum) {
       platforms.push({ x:0, y, w:leftW, h:14, type:'solid' });
       platforms.push({ x:leftW + gap, y, w:Math.max(60, rightW), h:14, type:'solid' });
     }
-  } else {
+  } else if (style === 5) {
     // ARENA — ring of platforms around edges
     const ring = [
       { x:10, y:500, w:160, h:14 }, { x:630, y:500, w:160, h:14 },
@@ -4384,6 +4413,93 @@ SB._genPlatforms = function(count, floorNum) {
     ];
     for (let i = 0; i < Math.min(count + 2, ring.length); i++) {
       platforms.push(ring[i]);
+    }
+  } else if (style === 6) {
+    // DOUBLE STAIR — two staircases rising from both sides, meeting near top
+    let y = 520;
+    for (let i = 0; i < count && y > 140; i++) {
+      const pw = SB.Utils.rand(100, 170);
+      // Left staircase
+      platforms.push({ x: SB.Utils.rand(5, 40), y, w: pw, h: 14, type: 'solid' });
+      // Right staircase
+      platforms.push({ x: SB.Utils.rand(SB.CONFIG.W - pw - 40, SB.CONFIG.W - pw - 5), y, w: pw, h: 14, type: 'solid' });
+      y -= SB.Utils.rand(55, 85);
+    }
+  } else if (style === 7) {
+    // ZIGZAG — platforms alternate left-center-right-center as they go up
+    const positions = [
+      { x: 40, w: 140 }, { x: 330, w: 140 }, { x: 620, w: 140 },
+      { x: 180, w: 160 }, { x: 460, w: 160 },
+      { x: 60, w: 120 }, { x: 350, w: 100 }, { x: 550, w: 120 },
+    ];
+    for (let i = 0; i < Math.min(count, positions.length); i++) {
+      const y = 510 - i * 68;
+      if (y < 140) break;
+      const pos = positions[i];
+      platforms.push({ x: pos.x, y, w: pos.w + SB.Utils.rand(-20, 30), h: 14, type: 'solid' });
+    }
+  } else if (style === 8) {
+    // TOWERS — tall vertical stacks of small platforms left and right, with a few center bridges
+    const leftX = SB.Utils.rand(10, 40);
+    const rightX = SB.Utils.rand(640, 720);
+    for (let i = 0; i < Math.ceil(count / 2); i++) {
+      const y = 510 - i * 65;
+      if (y < 120) break;
+      platforms.push({ x: leftX, y, w: SB.Utils.rand(70, 110), h: 14, type: 'solid' });
+      platforms.push({ x: rightX - SB.Utils.rand(70, 110), y, w: SB.Utils.rand(70, 110), h: 14, type: 'solid' });
+      // Occasional center bridge
+      if (i % 2 === 1 && y > 200) {
+        platforms.push({ x: SB.CONFIG.W / 2 - SB.Utils.rand(80, 130), y: y - 30, w: SB.Utils.rand(160, 260), h: 14, type: 'solid' });
+      }
+    }
+  } else if (style === 9) {
+    // ISLANDS — floating clusters of 2-3 platforms at different heights
+    const clusters = [
+      { y: 500, cx: 200 }, { y: 500, cx: 600 },
+      { y: 420, cx: 400 },
+      { y: 340, cx: 150 }, { y: 340, cx: 650 },
+      { y: 260, cx: 400 },
+      { y: 180, cx: 200 }, { y: 180, cx: 600 },
+    ];
+    for (let i = 0; i < Math.min(count + 1, clusters.length); i++) {
+      const c = clusters[i];
+      platforms.push({ x: c.cx - SB.Utils.rand(50, 80), y: c.y, w: SB.Utils.rand(90, 150), h: 14, type: 'solid' });
+      // Sometimes add a second platform in the cluster
+      if (Math.random() < 0.6 && c.y > 200) {
+        platforms.push({ x: c.cx + SB.Utils.rand(10, 60), y: c.y - SB.Utils.rand(30, 50), w: SB.Utils.rand(70, 120), h: 14, type: 'solid' });
+      }
+    }
+  } else if (style === 10) {
+    // DIAMOND — platforms arranged in a diamond/lozenge shape
+    const diamondPattern = [
+      { x: 350, y: 520, w: 100 },
+      { x: 230, y: 460, w: 120 }, { x: 450, y: 460, w: 120 },
+      { x: 130, y: 400, w: 140 }, { x: 530, y: 400, w: 140 },
+      { x: 230, y: 340, w: 120 }, { x: 450, y: 340, w: 120 },
+      { x: 350, y: 280, w: 100 },
+      { x: 300, y: 200, w: 200 },
+    ];
+    for (let i = 0; i < Math.min(count + 1, diamondPattern.length); i++) {
+      const dp = diamondPattern[i];
+      platforms.push({ x: dp.x + SB.Utils.rand(-15, 15), y: dp.y, w: dp.w + SB.Utils.rand(-20, 20), h: 14, type: 'solid' });
+    }
+  } else {
+    // SPIRAL — platforms spiral outward from center going upward
+    const spiralPattern = [
+      { x: 350, y: 520, w: 100 },
+      { x: 500, y: 470, w: 110 },
+      { x: 580, y: 400, w: 120 },
+      { x: 480, y: 340, w: 130 },
+      { x: 280, y: 310, w: 120 },
+      { x: 100, y: 360, w: 110 },
+      { x: 60, y: 430, w: 100 },
+      { x: 200, y: 470, w: 90 },
+      { x: 350, y: 260, w: 130 },
+      { x: 350, y: 180, w: 180 },
+    ];
+    for (let i = 0; i < Math.min(count + 2, spiralPattern.length); i++) {
+      const sp = spiralPattern[i];
+      platforms.push({ x: sp.x + SB.Utils.rand(-15, 15), y: sp.y + SB.Utils.rand(-10, 10), w: sp.w + SB.Utils.rand(-15, 20), h: 14, type: 'solid' });
     }
   }
   // Special platform types based on floor range
@@ -6343,11 +6459,18 @@ SB.Scenes = {
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(0, 0, SB.CONFIG.W, 36);
 
-    // Level name
-    ctx.fillStyle = '#ffcc00';
+    // Floor number — prominent with boss indicator
+    ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(d.name || '', 10, 22);
+    const bossSuffix = (d.name && d.name.includes('—')) ? ' ' + d.name.split('—')[1] : '';
+    ctx.fillText(`◆ FLOOR ${d.floorNum || 1}${bossSuffix}`, 10, 22);
+
+    // Progress
+    ctx.fillStyle = '#8888cc';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${d.floorNum || 1} / 200`, SB.CONFIG.W - 10, 12);
 
     // Score
     ctx.fillStyle = 'white';
