@@ -123,11 +123,11 @@ function aiMove(){
     for(const mv of moves){const{from,to:tm,piece:pm}=mv;let score=0;const cap=board[tm.x][tm.y];if(cap)score+=pieceVal[cap.type]*10;
       if(lv.pos){score+=(3.5-Math.abs(tm.x-3.5))*2;score+=tm.y*1;if(pm.type==='p'&&board[tm.x-1]&&board[tm.x-1][tm.y]?.color==='b'&&board[tm.x-1][tm.y]?.type==='p')score+=3;if(pm.type==='n'||pm.type==='b'){if(tm.y>=2&&tm.y<=5)score+=3}if(pm.type==='k')score-=(4-Math.abs(tm.x-3.5))*2}
       if(lv.safety){let ua=false;for(let ax=0;ax<8&&!ua;ax++)for(let ay=0;ay<8;ay++){const ap=board[ax][ay];if(ap&&ap.color==='w'&&getMoves(ax,ay,board,'w',false).some(am=>am.x===tm.x&&am.y===tm.y))ua=true}if(ua&&pieceVal[pm.type]>(cap?pieceVal[cap.type]:0))score-=pieceVal[pm.type]*8}
-      if(lv.look>=1){const nb=movePiece(from.x,from.y,tm.x,tm.y,board);promotePawn(nb,tm.x,tm.y,'b','q');let ob=0;for(let ax=0;ax<8;ax++)for(let ay=0;ay<8;ay++){const ap=nb[ax][ay];if(ap&&ap.color==='w'){const ams=getMoves(ax,ay,nb,'w',true).filter(m2=>{const nb2=movePiece(ax,ay,m2.x,m2.y,nb);return!isInCheck(nb2,'w')});for(const am of ams){const c2=nb[am.x][am.y];if(c2&&pieceVal[c2.type]*10>ob)ob=pieceVal[c2.type]*10}}}score-=ob*.5}
+      if(lv.look>=1){const nb=movePiece(from.x,from.y,tm.x,tm.y,board);if(pm.type==='p'&&tm.y===7)promotePawn(nb,tm.x,tm.y,'b','q');let ob=0;for(let ax=0;ax<8;ax++)for(let ay=0;ay<8;ay++){const ap=nb[ax][ay];if(ap&&ap.color==='w'){const ams=getMoves(ax,ay,nb,'w',true).filter(m2=>{const nb2=movePiece(ax,ay,m2.x,m2.y,nb);return!isInCheck(nb2,'w')});for(const am of ams){const c2=nb[am.x][am.y];if(c2&&pieceVal[c2.type]*10>ob)ob=pieceVal[c2.type]*10}}}score-=ob*.5}
       if(Math.random()<lv.blunder)score=-999+Math.random()*100;
       score+=Math.random()*1.5;if(score>bestScore){bestScore=score;bestMove=tm;bestFrom=from}}
   }
-  if(bestMove&&bestFrom){setTimeout(()=>{let nb=movePiece(bestFrom.x,bestFrom.y,bestMove.x,bestMove.y,board);promotePawn(nb,bestMove.x,bestMove.y,'b','q');board=nb;if(board[bestMove.x][bestMove.y].type==='k'&&Math.abs(bestMove.x-bestFrom.x)===2)bkMoved=true;turn='w';selX=selY=-1;legalMoves=[];postMove()},300)}
+  if(bestMove&&bestFrom){setTimeout(()=>{let nb=movePiece(bestFrom.x,bestFrom.y,bestMove.x,bestMove.y,board);if(board[bestFrom.x][bestFrom.y]&&board[bestFrom.x][bestFrom.y].type==='p'&&bestMove.y===7)promotePawn(nb,bestMove.x,bestMove.y,'b','q');board=nb;if(board[bestMove.x][bestMove.y].type==='k'&&Math.abs(bestMove.x-bestFrom.x)===2)bkMoved=true;turn='w';selX=selY=-1;legalMoves=[];postMove()},300)}
 }
 
 function postMove(){
