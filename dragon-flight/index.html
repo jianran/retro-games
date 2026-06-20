@@ -120,42 +120,6 @@
     #game-screen.hidden { display: none; }
     #gameCanvas { display: block; width: 100%; height: 100%; }
 
-    /* ── TOUCH CONTROLS ── */
-    #touch-controls {
-      position: absolute;
-      right: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      z-index: 10;
-      pointer-events: none;
-    }
-    .touch-btn {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.4);
-      background: rgba(255,255,255,0.12);
-      color: rgba(255,255,255,0.7);
-      font-size: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      pointer-events: auto;
-      -webkit-user-select: none;
-      user-select: none;
-      touch-action: manipulation;
-      transition: background 0.1s, transform 0.1s;
-    }
-    .touch-btn:active, .touch-btn.pressed {
-      background: rgba(255,255,255,0.3);
-      border-color: #ffdd44;
-      transform: scale(0.92);
-    }
-
     /* ── WIN SCREEN ── */
     #win-screen .trophy { font-size: 5rem; margin-bottom: 1rem; }
     #win-screen .winner-text { font-size: 2.5rem; margin-bottom: 0.5rem; }
@@ -211,10 +175,6 @@
   <div id="game-screen" class="hidden">
     <div id="hud"></div>
     <canvas id="gameCanvas"></canvas>
-    <div id="touch-controls">
-      <button class="touch-btn touch-up" id="btn-up">▲</button>
-      <button class="touch-btn touch-down" id="btn-down">▼</button>
-    </div>
   </div>
 
   <!-- WIN SCREEN -->
