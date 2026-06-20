@@ -478,6 +478,9 @@ function canMerge(a, b) {
 function countersElm(unit, elm) {
   return (unit.counters||[]).includes(elm);
 }
+function getUnitCounters(u) {
+  return u.counters || [];
+}
 function sellVal(u) { return Math.floor(BUY_COST_T1 * TIER_HP[Math.min(u.tier,9)] * SELL_PCT); }
 function uColor(u) { return u.color || EL[u.element]?.color || '#888'; }
 function uEmoji(u) { return u.emoji || EL[u.element]?.emoji || '?'; }
@@ -1332,8 +1335,6 @@ function render(){
           ctx.fillStyle='#fff';ctx.font='bold 11px system-ui';ctx.textAlign='center';
           ctx.fillText('→ '+m.name,p.x,p.y-CS*.65);
         }
-      // Big ability name stays on screen for 2.5s
-      S.damageNumbers.push({x:ux,y:uy-30,text:abName,life:2.5,max:2.5,color:'#ffffff',size:22});
       }
     }
   }
