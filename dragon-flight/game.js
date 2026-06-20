@@ -133,6 +133,7 @@ function startRace() {
   };
 
   buildHUD();
+  window._bindTouchForRace();
   window.addEventListener('keydown', onKD);
   window.addEventListener('keyup', onKU);
   requestAnimationFrame(loop);
@@ -176,6 +177,47 @@ function isKey(k) {
   if (k === '↓') return KEYS['ArrowDown'];
   return KEYS[k] || KEYS[k.toUpperCase()] || KEYS[k.toLowerCase()];
 }
+
+// ── TOUCH CONTROLS ──
+function controlKeyToEventKey(k) {
+  if (k === '↑') return 'ArrowUp';
+  if (k === '↓') return 'ArrowDown';
+  return k.toLowerCase();
+}
+
+(function setupTouchControls() {
+  function makeHandlers(ctrlKey) {
+    const ek = controlKeyToEventKey(ctrlKey);
+    return {
+      down(e) { e.preventDefault(); KEYS[ek] = true; e.currentTarget.classList.add('pressed'); },
+      up(e)   { e.preventDefault(); KEYS[ek] = false; e.currentTarget.classList.remove('pressed'); },
+    };
+  }
+
+  function bind(el, handlers) {
+    el.addEventListener('pointerdown', handlers.down);
+    el.addEventListener('pointerup', handlers.up);
+    el.addEventListener('pointerleave', handlers.up);
+    el.addEventListener('pointercancel', handlers.up);
+  }
+
+  // Re-bind on each race start since control schemes can change with player count
+  window._bindTouchForRace = function () {
+    if (!state.race) return;
+    const p1 = state.race.dragons.find(d => d.isHuman);
+    if (!p1 || !p1.keys) return;
+    // Always query fresh — previous nodes may have been replaced by cloning
+    const oldUp = document.getElementById('btn-up');
+    const oldDown = document.getElementById('btn-down');
+    if (!oldUp || !oldDown) return;
+    const newUp = oldUp.cloneNode(true);
+    const newDown = oldDown.cloneNode(true);
+    oldUp.parentNode.replaceChild(newUp, oldUp);
+    oldDown.parentNode.replaceChild(newDown, oldDown);
+    bind(newUp, makeHandlers(p1.keys.up));
+    bind(newDown, makeHandlers(p1.keys.down));
+  };
+})();
 
 // ── SPAWNERS ──
 function spawnObs() {
